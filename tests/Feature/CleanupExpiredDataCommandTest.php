@@ -6,7 +6,9 @@ use App\Actions\DeleteExpiredChatMessagesAction;
 use App\Actions\DeleteExpiredSendsAction;
 use App\Actions\DeleteExpiredUploadedFilesAction;
 use App\Contracts\ExpirableCleanupInterface;
+use App\Enums\TimePeriod;
 use App\Models\ChatMessage;
+use App\Models\Conversation;
 use App\Models\Send;
 use App\Models\User;
 use App\Services\Interfaces\SendReadServiceInterface;
@@ -72,6 +74,42 @@ it('runs all tagged expirable cleanup tasks', function () {
 
     Storage::disk('r2')->assertMissing($expiredPath);
     Storage::disk('r2')->assertExists($freshPath);
+});
+
+it('deletes chat messages past a one day conversation auto delete period', function () {
+    config(['filesystems.upload.disk' => 'r2']);
+    Storage::fake('r2');
+
+    $alice = User::factory()->create();
+    $bob = User::factory()->create();
+    $conversation = createConversation($alice, $bob);
+
+    Conversation::query()
+        ->whereKey($conversation->id)
+        ->update(['auto_delete' => TimePeriod::ONE_DAY->value]);
+
+    $expiredMessage = ChatMessage::query()->create([
+        'conversation_id' => $conversation->id,
+        'sender_id' => $alice->id,
+        'payload' => fakeChatPayload(),
+    ]);
+
+    ChatMessage::query()
+        ->whereKey($expiredMessage->id)
+        ->update(['created_at' => now()->subDays(2)]);
+
+    $freshMessage = ChatMessage::query()->create([
+        'conversation_id' => $conversation->id,
+        'sender_id' => $bob->id,
+        'payload' => fakeChatPayload(),
+    ]);
+
+    $this->artisan('system:cleanup-expired')
+        ->expectsOutputToContain('Deleted 1 expired chat message(s).')
+        ->assertSuccessful();
+
+    expect(ChatMessage::query()->whereKey($expiredMessage->id)->exists())->toBeFalse()
+        ->and(ChatMessage::query()->whereKey($freshMessage->id)->exists())->toBeTrue();
 });
 
 it('schedules system cleanup every thirty minutes', function () {
