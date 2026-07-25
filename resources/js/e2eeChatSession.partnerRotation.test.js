@@ -97,6 +97,7 @@ describe('partner key rotation', () => {
         expect(messages[0]).toEqual({
             payload,
             plaintext: 'Previously failed message',
+            attachment: null,
             decryptionError: '',
         });
 
