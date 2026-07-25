@@ -98,6 +98,46 @@ it('allows the have i been pwned passwords api for connect sources', function ()
         ->toContain('https://api.pwnedpasswords.com');
 });
 
+it('allows configured cloud upload origins for connect sources', function () {
+    config([
+        'app.url' => 'https://example.test',
+        'filesystems.disks.r2.url' => 'https://files.passshare.test/bucket',
+        'filesystems.disks.r2.endpoint' => 'https://accountid.r2.cloudflarestorage.com',
+        'filesystems.disks.r2.bucket' => 'dropkey',
+        'filesystems.disks.r2.use_path_style_endpoint' => false,
+        'filesystems.disks.s3.url' => null,
+        'filesystems.disks.s3.endpoint' => null,
+        'filesystems.disks.s3.bucket' => null,
+    ]);
+
+    $policy = Policy::create([StrictPolicyPreset::class])->getContents();
+
+    expect($policy)
+        ->toContain('connect-src')
+        ->toContain('https://files.passshare.test')
+        ->toContain('https://accountid.r2.cloudflarestorage.com')
+        ->toContain('https://dropkey.accountid.r2.cloudflarestorage.com');
+});
+
+it('does not add virtual-hosted cloud upload origins when path style is enabled', function () {
+    config([
+        'app.url' => 'https://example.test',
+        'filesystems.disks.r2.url' => null,
+        'filesystems.disks.r2.endpoint' => 'https://accountid.r2.cloudflarestorage.com',
+        'filesystems.disks.r2.bucket' => 'dropkey',
+        'filesystems.disks.r2.use_path_style_endpoint' => true,
+        'filesystems.disks.s3.url' => null,
+        'filesystems.disks.s3.endpoint' => null,
+        'filesystems.disks.s3.bucket' => null,
+    ]);
+
+    $policy = Policy::create([StrictPolicyPreset::class])->getContents();
+
+    expect($policy)
+        ->toContain('https://accountid.r2.cloudflarestorage.com')
+        ->not->toContain('https://dropkey.accountid.r2.cloudflarestorage.com');
+});
+
 it('allows cloudflare turnstile sources when turnstile is enabled', function () {
     config([
         'app.url' => 'https://example.test',

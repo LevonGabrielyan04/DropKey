@@ -247,6 +247,41 @@ describe('redecryptStoredMessages', () => {
         expect(messages[0]).toEqual({
             payload: 'encrypted-payload',
             plaintext: 'Recovered message',
+            attachment: null,
+            decryptionError: '',
+        });
+    });
+
+    it('hydrates attachment metadata from recovered envelopes', async () => {
+        decryptChatMessage.mockResolvedValue(JSON.stringify({
+            v: 1,
+            text: 'see file',
+            attachment: {
+                path: 'uploads/1/file.txt',
+                name: 'file.txt',
+                content_type: 'text/plain',
+                size: 4,
+            },
+        }));
+
+        const messages = [{
+            payload: 'encrypted-payload',
+            plaintext: null,
+            attachment: null,
+            decryptionError: 'Unable to decrypt this message.',
+        }];
+
+        await redecryptStoredMessages(messages, {}, 'Unable to decrypt this message.');
+
+        expect(messages[0]).toEqual({
+            payload: 'encrypted-payload',
+            plaintext: 'see file',
+            attachment: {
+                path: 'uploads/1/file.txt',
+                name: 'file.txt',
+                content_type: 'text/plain',
+                size: 4,
+            },
             decryptionError: '',
         });
     });

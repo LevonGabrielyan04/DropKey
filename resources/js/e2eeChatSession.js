@@ -1,4 +1,12 @@
 import {
+    buildAttachmentMetadata,
+    hydrateMessageContent,
+    requestUploadLink,
+    serializeChatMessageContent,
+    uploadFileToLink,
+    validateSelectedFile,
+} from './chatFileUpload.js';
+import {
     decryptChatMessage,
     encryptChatMessage,
     establishSession,
@@ -59,7 +67,10 @@ export async function redecryptStoredMessages(messages, conversationKey, decrypt
         );
 
         if (! resolved.decryptionError) {
-            message.plaintext = resolved.plaintext;
+            const hydrated = hydrateMessageContent(resolved.plaintext, '');
+
+            message.plaintext = hydrated.plaintext;
+            message.attachment = hydrated.attachment;
             message.decryptionError = '';
         }
     }
@@ -218,6 +229,8 @@ document.addEventListener('alpine:init', () => {
         error: '',
         messages: [],
         messageText: '',
+        selectedFile: null,
+        selectedFileName: '',
         sending: false,
         sendError: '',
         partnerFingerprint: '',
@@ -232,6 +245,8 @@ document.addEventListener('alpine:init', () => {
         csrfToken: '',
         messagesUrl: '',
         sendUrl: '',
+        uploadsUrl: '',
+        uploadMaxFileBytes: 10 * 1024 * 1024,
         messageViewedUrlTemplate: '',
         registerUrl: '',
         mineUrl: '',
@@ -243,7 +258,9 @@ document.addEventListener('alpine:init', () => {
         autoDeleteError: '',
 
         get canSendMessage() {
-            return this.ready && ! this.sending && this.messageText.trim() !== '';
+            return this.ready
+                && ! this.sending
+                && (this.messageText.trim() !== '' || this.selectedFile !== null);
         },
 
         formatMessageTime,
@@ -255,6 +272,9 @@ document.addEventListener('alpine:init', () => {
             this.csrfToken = this.$el.dataset.csrfToken ?? '';
             this.messagesUrl = this.$el.dataset.messagesUrl ?? '';
             this.sendUrl = this.$el.dataset.sendUrl ?? '';
+            this.uploadsUrl = this.$el.dataset.uploadsUrl ?? '';
+            this.uploadMaxFileBytes = Number(this.$el.dataset.uploadMaxFileBytes)
+                || (10 * 1024 * 1024);
             this.messageViewedUrlTemplate = this.$el.dataset.messageViewedUrlTemplate ?? '';
             this.registerUrl = this.$el.dataset.registerUrl ?? '';
             this.mineUrl = this.$el.dataset.mineUrl ?? '';
@@ -266,6 +286,44 @@ document.addEventListener('alpine:init', () => {
             this.autoDeleteUrl = this.$el.dataset.autoDeleteUrl ?? '';
 
             this.bootstrap();
+        },
+
+        openFilePicker() {
+            this.$refs.fileInput?.click();
+        },
+
+        /**
+         * @param {Event} event
+         */
+        onFileSelected(event) {
+            const input = event.target;
+
+            if (! (input instanceof HTMLInputElement)) {
+                return;
+            }
+
+            const file = input.files?.[0] ?? null;
+            input.value = '';
+
+            if (! file) {
+                return;
+            }
+
+            const validationError = validateSelectedFile(file, this.uploadMaxFileBytes);
+
+            if (validationError !== '') {
+                this.sendError = validationError;
+                return;
+            }
+
+            this.selectedFile = file;
+            this.selectedFileName = file.name;
+            this.sendError = '';
+        },
+
+        clearSelectedFile() {
+            this.selectedFile = null;
+            this.selectedFileName = '';
         },
 
         destroy() {
@@ -381,7 +439,10 @@ document.addEventListener('alpine:init', () => {
                     );
 
                     if (! resolved.decryptionError) {
-                        existing.plaintext = resolved.plaintext;
+                        const hydrated = hydrateMessageContent(resolved.plaintext, '');
+
+                        existing.plaintext = hydrated.plaintext;
+                        existing.attachment = hydrated.attachment;
                         existing.decryptionError = '';
                     }
 
@@ -400,12 +461,15 @@ document.addEventListener('alpine:init', () => {
                 () => this.syncPartnerSession(),
             );
 
+            const hydrated = hydrateMessageContent(plaintext, decryptionError);
+
             this.messages.push({
                 publicId: message.public_id,
                 senderPublicId: message.sender.public_id,
                 payload: message.payload,
-                plaintext,
-                decryptionError,
+                plaintext: hydrated.plaintext,
+                attachment: hydrated.attachment,
+                decryptionError: hydrated.decryptionError,
                 createdAt: message.created_at,
                 isMine: message.sender.public_id === this.localUserPublicId,
                 isViewed: Boolean(message.is_viewed),
@@ -555,8 +619,13 @@ document.addEventListener('alpine:init', () => {
 
         async sendMessage() {
             const text = this.messageText.trim();
+            const file = this.selectedFile;
 
-            if (! this.ready || this.sending || text === '' || ! this.conversationKey) {
+            if (! this.ready || this.sending || ! this.conversationKey) {
+                return;
+            }
+
+            if (text === '' && ! file) {
                 return;
             }
 
@@ -564,7 +633,26 @@ document.addEventListener('alpine:init', () => {
             this.sendError = '';
 
             try {
-                const payload = await encryptChatMessage(text, this.conversationKey);
+                let attachment = null;
+
+                if (file) {
+                    if (! this.uploadsUrl) {
+                        this.sendError = 'File uploads are unavailable.';
+                        return;
+                    }
+
+                    const link = await requestUploadLink({
+                        uploadsUrl: this.uploadsUrl,
+                        csrfToken: this.csrfToken,
+                        file,
+                    });
+
+                    await uploadFileToLink(file, link);
+                    attachment = buildAttachmentMetadata(file, link.path);
+                }
+
+                const content = serializeChatMessageContent({ text, attachment });
+                const payload = await encryptChatMessage(content, this.conversationKey);
 
                 const response = await fetch(this.sendUrl, {
                     method: 'POST',
@@ -598,6 +686,7 @@ document.addEventListener('alpine:init', () => {
                     publicId: created.public_id,
                     senderPublicId: this.localUserPublicId,
                     plaintext: text,
+                    attachment,
                     decryptionError: '',
                     createdAt: created.created_at,
                     isMine: true,
@@ -606,10 +695,13 @@ document.addEventListener('alpine:init', () => {
 
                 this.lastMessagePublicId = created.public_id;
                 this.messageText = '';
+                this.clearSelectedFile();
                 this.sortMessages();
                 this.scrollToBottom();
-            } catch {
-                this.sendError = 'Encryption or delivery failed. Try again.';
+            } catch (error) {
+                this.sendError = error instanceof Error && error.message !== ''
+                    ? error.message
+                    : 'Encryption or delivery failed. Try again.';
             } finally {
                 this.sending = false;
             }

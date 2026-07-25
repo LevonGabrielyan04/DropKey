@@ -96,6 +96,7 @@ class StrictPolicyPreset implements Preset
         $sources = [
             ...$this->allowedOrigins(),
             ...$this->reverbConnectSources(),
+            ...$this->cloudUploadConnectSources(),
             'https://api.pwnedpasswords.com',
         ];
 
@@ -336,6 +337,97 @@ class StrictPolicyPreset implements Preset
         $requestHost = request()->getHost();
 
         return $requestHost !== '' && $this->isLoopbackHost($requestHost);
+    }
+
+    /**
+     * Allow browser uploads to S3-compatible disks (R2).
+     *
+     * With use_path_style_endpoint=false, temporaryUploadUrl() signs
+     * virtual-hosted URLs ({bucket}.{endpoint-host}), which must be listed
+     * separately from the bare endpoint origin.
+     *
+     * @return list<string>
+     */
+    private function cloudUploadConnectSources(): array
+    {
+        $origins = [];
+
+        foreach (['r2', 's3'] as $disk) {
+            foreach ($this->cloudUploadDiskOrigins($disk) as $origin) {
+                $origins[] = $origin;
+            }
+        }
+
+        return array_values(array_unique($origins));
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function cloudUploadDiskOrigins(string $disk): array
+    {
+        $urls = [
+            config("filesystems.disks.{$disk}.url"),
+            config("filesystems.disks.{$disk}.endpoint"),
+        ];
+
+        $origins = [];
+
+        foreach ($urls as $url) {
+            $origin = $this->originFromUrl(is_string($url) ? $url : null);
+
+            if ($origin !== null) {
+                $origins[] = $origin;
+            }
+        }
+
+        if (filter_var(config("filesystems.disks.{$disk}.use_path_style_endpoint"), FILTER_VALIDATE_BOOLEAN)) {
+            return $origins;
+        }
+
+        $bucket = config("filesystems.disks.{$disk}.bucket");
+        $endpoint = config("filesystems.disks.{$disk}.endpoint");
+
+        if (! is_string($bucket) || $bucket === '' || ! is_string($endpoint) || $endpoint === '') {
+            return $origins;
+        }
+
+        $parts = parse_url($endpoint);
+
+        if (! isset($parts['scheme'], $parts['host'])) {
+            return $origins;
+        }
+
+        $virtualHostedOrigin = $parts['scheme'].'://'.$bucket.'.'.$parts['host'];
+
+        if (isset($parts['port'])) {
+            $virtualHostedOrigin .= ':'.$parts['port'];
+        }
+
+        $origins[] = $virtualHostedOrigin;
+
+        return $origins;
+    }
+
+    private function originFromUrl(?string $url): ?string
+    {
+        if ($url === null || $url === '') {
+            return null;
+        }
+
+        $parts = parse_url($url);
+
+        if (! isset($parts['scheme'], $parts['host'])) {
+            return null;
+        }
+
+        $origin = $parts['scheme'].'://'.$parts['host'];
+
+        if (isset($parts['port'])) {
+            $origin .= ':'.$parts['port'];
+        }
+
+        return $origin;
     }
 
     /**

@@ -11,6 +11,8 @@
         data-mine-url="{{ route('api.identity.public-key.mine') }}"
         data-messages-url="{{ route('messages.index', $recipient) }}"
         data-send-url="{{ route('messages.store') }}"
+        data-uploads-url="{{ route('api.uploads.store') }}"
+        data-upload-max-file-bytes="{{ (int) config('filesystems.upload.max_file_bytes') }}"
         data-message-viewed-url-template="{{ route('messages.viewed', ['message' => '__PUBLIC_ID__']) }}"
         data-conversation-public-key="{{ $conversation?->public_key ?? '' }}"
         data-decryption-failed-message="{{ __('Unable to decrypt this message.') }}"
@@ -109,10 +111,21 @@
                             : 'me-auto border-zinc-950 bg-white text-zinc-950 dark:border-zinc-100 dark:bg-zinc-950 dark:text-zinc-50')"
                 >
                     <p
-                        x-show="!message.decryptionError"
+                        x-show="!message.decryptionError && message.plaintext"
                         class="whitespace-pre-wrap break-words"
                         x-text="message.plaintext"
                     ></p>
+                    <div
+                        x-show="!message.decryptionError && message.attachment"
+                        x-cloak
+                        class="mt-2 flex items-center gap-2 border-t-2 border-zinc-950/20 pt-2 text-xs dark:border-zinc-100/20"
+                    >
+                        <flux:icon.paper-clip class="size-3.5 shrink-0" />
+                        <span
+                            class="min-w-0 truncate font-bold uppercase tracking-[0.08em]"
+                            x-text="message.attachment ? message.attachment.name : ''"
+                        ></span>
+                    </div>
                     <p
                         x-show="message.decryptionError"
                         x-cloak
@@ -176,14 +189,53 @@
                     {{ __('Message') }}
                 </label>
 
-                <textarea
-                    id="message"
-                    x-model="messageText"
-                    rows="4"
-                    placeholder="{{ __('Type your message...') }}"
-                    class="mt-2 block w-full !rounded-none border-2 border-zinc-950 bg-white px-3 py-2.5 font-mono text-sm text-zinc-950 focus:border-emerald-500 focus:outline-hidden focus:ring-2 focus:ring-emerald-500 dark:border-zinc-100 dark:bg-zinc-900 dark:text-zinc-50"
-                    :disabled="!ready || sending"
-                ></textarea>
+                <div class="mt-2 flex items-stretch gap-2">
+                    <textarea
+                        id="message"
+                        x-model="messageText"
+                        rows="4"
+                        placeholder="{{ __('Type your message...') }}"
+                        class="block w-full min-w-0 flex-1 !rounded-none border-2 border-zinc-950 bg-white px-3 py-2.5 font-mono text-sm text-zinc-950 focus:border-emerald-500 focus:outline-hidden focus:ring-2 focus:ring-emerald-500 dark:border-zinc-100 dark:bg-zinc-900 dark:text-zinc-50"
+                        :disabled="!ready || sending"
+                    ></textarea>
+
+                    <input
+                        type="file"
+                        x-ref="fileInput"
+                        class="hidden"
+                        @change="onFileSelected"
+                    >
+
+                    <button
+                        type="button"
+                        @click="openFilePicker"
+                        :disabled="!ready || sending"
+                        class="inline-flex shrink-0 cursor-pointer items-center justify-center !rounded-none border-2 border-zinc-950 bg-zinc-50 px-3 text-zinc-950 transition-colors hover:bg-zinc-200 disabled:cursor-not-allowed disabled:opacity-50 dark:border-zinc-100 dark:bg-zinc-900 dark:text-zinc-50 dark:hover:bg-zinc-800"
+                        aria-label="{{ __('Attach file') }}"
+                        title="{{ __('Attach file') }}"
+                    >
+                        <flux:icon.paper-clip class="size-5" />
+                    </button>
+                </div>
+
+                <div
+                    x-show="selectedFileName"
+                    x-cloak
+                    class="mt-3 flex items-center justify-between gap-3 border-2 border-zinc-950 bg-zinc-50 px-3 py-2 text-xs dark:border-zinc-100 dark:bg-zinc-900"
+                >
+                    <span
+                        class="min-w-0 truncate font-bold uppercase tracking-[0.08em] text-zinc-700 dark:text-zinc-300"
+                        x-text="selectedFileName"
+                    ></span>
+                    <button
+                        type="button"
+                        @click="clearSelectedFile"
+                        :disabled="sending"
+                        class="shrink-0 cursor-pointer font-bold uppercase tracking-[0.14em] text-zinc-500 underline-offset-2 hover:text-zinc-950 hover:underline disabled:cursor-not-allowed disabled:opacity-50 dark:hover:text-zinc-50"
+                    >
+                        {{ __('Remove') }}
+                    </button>
+                </div>
 
                 <span x-show="sendError" x-text="sendError" x-cloak class="mt-2 block text-sm text-red-600"></span>
             </div>
@@ -195,7 +247,8 @@
                     :disabled="!canSendMessage"
                 >
                     <span x-show="!sending">{{ __('Send encrypted message') }}</span>
-                    <span x-show="sending" x-cloak>{{ __('Encrypting...') }}</span>
+                    <span x-show="sending && selectedFile" x-cloak>{{ __('Uploading...') }}</span>
+                    <span x-show="sending && !selectedFile" x-cloak>{{ __('Encrypting...') }}</span>
                 </button>
             </div>
         </form>
