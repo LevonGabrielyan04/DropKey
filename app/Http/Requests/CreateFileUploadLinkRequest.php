@@ -8,6 +8,9 @@ use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
+/**
+ * @method array{filename: string, content_type: string, size: int} validated()
+ */
 class CreateFileUploadLinkRequest extends FormRequest
 {
     /**

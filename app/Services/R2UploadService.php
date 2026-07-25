@@ -97,7 +97,7 @@ class R2UploadService implements R2UploadServiceInterface
     private function generateObjectPath(User $user, string $filename): string
     {
         $extension = pathinfo($filename, PATHINFO_EXTENSION);
-        $safeExtension = is_string($extension) && $extension !== ''
+        $safeExtension = $extension !== ''
             ? Str::lower(Str::substr($extension, 0, 20))
             : 'bin';
 

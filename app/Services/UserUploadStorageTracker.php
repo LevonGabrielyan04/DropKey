@@ -11,7 +11,6 @@ use Illuminate\Contracts\Filesystem\Filesystem;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Storage;
 use League\Flysystem\FileAttributes;
-use League\Flysystem\StorageAttributes;
 
 class UserUploadStorageTracker implements UserUploadStorageTrackerInterface
 {
@@ -81,11 +80,10 @@ class UserUploadStorageTracker implements UserUploadStorageTrackerInterface
         $prefix = $this->userPrefix($user);
 
         foreach ($disk->getDriver()->listContents($prefix, true) as $attributes) {
-            if (! $attributes instanceof StorageAttributes || ! $attributes->isFile()) {
+            if (! $attributes instanceof FileAttributes) {
                 continue;
             }
 
-            /** @var FileAttributes $attributes */
             $total += $attributes->fileSize() ?? 0;
         }
 
@@ -102,7 +100,7 @@ class UserUploadStorageTracker implements UserUploadStorageTrackerInterface
         $active = [];
 
         foreach ($reservations as $path => $reservation) {
-            if (($reservation['expires_at'] ?? 0) > $now) {
+            if ($reservation['expires_at'] > $now) {
                 $active[$path] = $reservation;
             }
         }

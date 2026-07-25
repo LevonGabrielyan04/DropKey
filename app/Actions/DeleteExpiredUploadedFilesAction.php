@@ -8,7 +8,7 @@ use App\Contracts\ExpirableCleanupInterface;
 use App\Enums\TimePeriod;
 use App\Services\Interfaces\UserUploadStorageTrackerInterface;
 use Illuminate\Support\Facades\Storage;
-use League\Flysystem\StorageAttributes;
+use League\Flysystem\FileAttributes;
 
 class DeleteExpiredUploadedFilesAction implements ExpirableCleanupInterface
 {
@@ -34,7 +34,7 @@ class DeleteExpiredUploadedFilesAction implements ExpirableCleanupInterface
         $affectedUserIds = [];
 
         foreach ($disk->getDriver()->listContents('uploads', true) as $attributes) {
-            if (! $attributes instanceof StorageAttributes || ! $attributes->isFile()) {
+            if (! $attributes instanceof FileAttributes) {
                 continue;
             }
 
