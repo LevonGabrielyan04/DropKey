@@ -17,7 +17,7 @@ use Illuminate\Support\Carbon;
 use Illuminate\Support\Str;
 
 /**
- * @property int $id
+ * @property string $id
  * @property string $public_key
  * @property int $user_one_id
  * @property int $user_two_id
@@ -45,21 +45,13 @@ class Conversation extends Model
     }
 
     /**
-     * Generate a new UUID for the public identifier.
-     */
-    public function newUniqueId(): string
-    {
-        return (string) Str::uuid();
-    }
-
-    /**
      * Get the columns that should receive a unique identifier.
      *
      * @return array<int, string>
      */
     public function uniqueIds(): array
     {
-        return ['public_key'];
+        return ['id', 'public_key'];
     }
 
     /**

@@ -11,7 +11,7 @@ use Tests\TestCase;
 
 uses(TestCase::class, RefreshDatabase::class);
 
-it('assigns a unique uuid v4 public id when creating a chat message', function () {
+it('assigns a unique uuid public id when creating a chat message', function () {
     $alice = User::factory()->create();
     $bob = User::factory()->create();
     $conversation = createConversation($alice, $bob);
@@ -22,9 +22,10 @@ it('assigns a unique uuid v4 public id when creating a chat message', function (
         'payload' => fakeChatPayload(),
     ]);
 
-    expect($message->public_id)
-        ->toBeString()
-        ->and(Str::isUuid($message->public_id, version: 4))->toBeTrue();
+    expect($message->id)->toBeString()
+        ->and(Str::isUuid($message->id))->toBeTrue()
+        ->and($message->public_id)->toBeString()
+        ->and(Str::isUuid($message->public_id))->toBeTrue();
 });
 
 it('stores chat message public ids as binary uuids in the database', function () {

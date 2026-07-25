@@ -52,7 +52,7 @@ class ChatMessageRepository implements ChatMessageRepositoryInterface
      */
     public function getMessagesForConversation(Conversation $conversation, ?string $afterPublicId = null): Collection
     {
-        $afterId = 0;
+        $afterId = null;
 
         if ($afterPublicId !== null && $afterPublicId !== '' && Str::isUuid($afterPublicId)) {
             $cursorId = $conversation->messages()
@@ -60,13 +60,13 @@ class ChatMessageRepository implements ChatMessageRepositoryInterface
                 ->value('id');
 
             if ($cursorId !== null) {
-                $afterId = (int) $cursorId;
+                $afterId = (string) $cursorId;
             }
         }
 
         return $conversation->messages()
             ->with(['sender:id,public_key'])
-            ->when($afterId > 0, fn ($query) => $query->where('id', '>', $afterId))
+            ->when($afterId !== null, fn ($query) => $query->where('id', '>', $afterId))
             ->orderBy('id')
             ->limit((int) config('chat.poll.batch_size'))
             ->get(ChatMessageColumns::COLUMNS);

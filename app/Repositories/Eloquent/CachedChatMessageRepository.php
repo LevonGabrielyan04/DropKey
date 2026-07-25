@@ -37,7 +37,7 @@ readonly class CachedChatMessageRepository implements ChatMessageRepositoryInter
      */
     public function getMessagesForConversation(Conversation $conversation, ?string $afterPublicId = null): Collection
     {
-        $conversationId = (int) $conversation->id;
+        $conversationId = (string) $conversation->id;
         $taggedCache = $this->conversationMessagesCache($conversationId);
         $cacheKey = $this->messagesCacheKey($conversationId, $afterPublicId, ChatMessageColumns::COLUMNS);
         $ttl = $this->cacheExpiresAt();
@@ -65,7 +65,7 @@ readonly class CachedChatMessageRepository implements ChatMessageRepositoryInter
         $viewedPublicIds = $this->repository->markMessagesAsViewed($conversation, $sender);
 
         if ($viewedPublicIds !== []) {
-            $this->forgetConversationMessages((int) $conversation->id);
+            $this->forgetConversationMessages((string) $conversation->id);
         }
 
         return $viewedPublicIds;
@@ -80,7 +80,7 @@ readonly class CachedChatMessageRepository implements ChatMessageRepositoryInter
 
         if ($viewedPublicId !== null) {
             $this->cache->forget($this->messageCacheKey($message->id));
-            $this->forgetConversationMessages((int) $message->conversation_id);
+            $this->forgetConversationMessages((string) $message->conversation_id);
         }
 
         return $viewedPublicId;
@@ -90,7 +90,7 @@ readonly class CachedChatMessageRepository implements ChatMessageRepositoryInter
     {
         $message = $this->repository->createMessage($conversation, $sender, $payload);
 
-        $this->forgetConversationMessages((int) $conversation->id);
+        $this->forgetConversationMessages((string) $conversation->id);
 
         $this->cache->put(
             $this->messageCacheKey($message->id),
@@ -113,11 +113,11 @@ readonly class CachedChatMessageRepository implements ChatMessageRepositoryInter
 
         foreach ($expiredMessages as $message) {
             $this->cache->forget($this->messageCacheKey($message->id));
-            $conversationIds[(int) $message->conversation_id] = true;
+            $conversationIds[(string) $message->conversation_id] = true;
         }
 
         foreach (array_keys($conversationIds) as $conversationId) {
-            $this->forgetConversationMessages($conversationId);
+            $this->forgetConversationMessages((string) $conversationId);
         }
 
         return $this->repository->deleteExpired();
@@ -236,7 +236,7 @@ readonly class CachedChatMessageRepository implements ChatMessageRepositoryInter
     /**
      * @param  array<int, string>  $columns
      */
-    private function messagesCacheKey(int $conversationId, ?string $afterPublicId, array $columns): string
+    private function messagesCacheKey(string $conversationId, ?string $afterPublicId, array $columns): string
     {
         $encodedColumns = json_encode(array_values($columns));
 
@@ -252,17 +252,17 @@ readonly class CachedChatMessageRepository implements ChatMessageRepositoryInter
     /**
      * @return list<string>
      */
-    private function conversationMessagesTags(int $conversationId): array
+    private function conversationMessagesTags(string $conversationId): array
     {
         return ["conversation:{$conversationId}:messages"];
     }
 
-    private function conversationMessagesCache(int $conversationId): CacheRepository
+    private function conversationMessagesCache(string $conversationId): CacheRepository
     {
         return $this->cache->tags($this->conversationMessagesTags($conversationId));
     }
 
-    private function forgetConversationMessages(int $conversationId): void
+    private function forgetConversationMessages(string $conversationId): void
     {
         $this->conversationMessagesCache($conversationId)->flush();
     }

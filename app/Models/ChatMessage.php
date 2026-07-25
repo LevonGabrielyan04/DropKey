@@ -19,9 +19,9 @@ use Illuminate\Support\Carbon;
 use Illuminate\Support\Str;
 
 /**
- * @property int $id
+ * @property string $id
  * @property string $public_id
- * @property int $conversation_id
+ * @property string $conversation_id
  * @property int $sender_id
  * @property string $payload
  * @property bool $is_viewed
@@ -58,21 +58,13 @@ class ChatMessage extends Model
     }
 
     /**
-     * Generate a new UUID for the public identifier.
-     */
-    public function newUniqueId(): string
-    {
-        return (string) Str::uuid();
-    }
-
-    /**
      * Get the columns that should receive a unique identifier.
      *
      * @return array<int, string>
      */
     public function uniqueIds(): array
     {
-        return ['public_id'];
+        return ['id', 'public_id'];
     }
 
     /**

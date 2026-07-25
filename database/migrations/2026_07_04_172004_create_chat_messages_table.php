@@ -12,8 +12,8 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('chat_messages', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('conversation_id')->constrained()->cascadeOnDelete();
+            $table->uuid('id')->primary();
+            $table->foreignUuid('conversation_id')->constrained()->cascadeOnDelete();
             $table->foreignId('sender_id')->constrained('users')->cascadeOnDelete();
             $table->text('payload');
             $table->timestamp('created_at')->useCurrent();

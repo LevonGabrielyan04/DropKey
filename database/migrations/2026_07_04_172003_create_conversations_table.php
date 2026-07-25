@@ -13,7 +13,7 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('conversations', function (Blueprint $table) {
-            $table->id();
+            $table->uuid('id')->primary();
             $table->foreignId('user_one_id')->constrained('users')->cascadeOnDelete();
             $table->foreignId('user_two_id')->constrained('users')->cascadeOnDelete();
             $table->string('auto_delete', 30)->default(TimePeriod::SEVEN_DAYS->value);

@@ -33,15 +33,16 @@ it('stores user public keys as binary uuids in the database', function () {
         ->and(BinaryCodec::decode($rawPublicKey, 'uuid'))->toBe($user->public_key);
 });
 
-it('assigns a unique uuid v4 public key when creating a conversation', function () {
+it('assigns unique uuid identifiers when creating a conversation', function () {
     $alice = User::factory()->create();
     $bob = User::factory()->create();
 
     $conversation = createConversation($alice, $bob);
 
-    expect($conversation->public_key)
-        ->toBeString()
-        ->and(Str::isUuid($conversation->public_key, version: 4))->toBeTrue();
+    expect($conversation->id)->toBeString()
+        ->and(Str::isUuid($conversation->id))->toBeTrue()
+        ->and($conversation->public_key)->toBeString()
+        ->and(Str::isUuid($conversation->public_key))->toBeTrue();
 });
 
 it('stores conversation public keys as binary uuids in the database', function () {

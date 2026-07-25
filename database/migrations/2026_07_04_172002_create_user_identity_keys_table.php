@@ -12,7 +12,7 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('user_identity_keys', function (Blueprint $table) {
-            $table->id();
+            $table->uuid('id')->primary();
             $table->foreignId('user_id')->unique()->constrained()->cascadeOnDelete();
             $table->binary('browser_db_id', length: 16, fixed: true)->unique();
             $table->json('public_key_jwk');

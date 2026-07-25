@@ -39,12 +39,12 @@ function makeCachedChatMessageRepository(
     ];
 }
 
-function conversationMessagesTag(int $conversationId): string
+function conversationMessagesTag(int|string $conversationId): string
 {
     return "conversation:{$conversationId}:messages";
 }
 
-function chatMessagesCacheKey(int $conversationId, ?string $afterPublicId = null): string
+function chatMessagesCacheKey(int|string $conversationId, ?string $afterPublicId = null): string
 {
     $cursor = $afterPublicId ?? 'start';
     $encodedColumns = json_encode(array_values(ChatMessageColumns::COLUMNS));
@@ -52,7 +52,7 @@ function chatMessagesCacheKey(int $conversationId, ?string $afterPublicId = null
     return 'chat_messages_'.$conversationId.'_'.$cursor.'_'.hash('xxh128', $encodedColumns);
 }
 
-function makeChatMessage(int $id, int $conversationId, array $attributes = []): ChatMessage
+function makeChatMessage(int|string $id, int|string $conversationId, array $attributes = []): ChatMessage
 {
     $message = new ChatMessage;
     $message->id = $id;
@@ -65,7 +65,7 @@ function makeChatMessage(int $id, int $conversationId, array $attributes = []): 
     return $message;
 }
 
-function makeConversation(int $id): Conversation
+function makeConversation(int|string $id): Conversation
 {
     $conversation = new Conversation;
     $conversation->id = $id;

@@ -7,13 +7,14 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Casts\AsBinary;
+use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Str;
 
 /**
- * @property int $id
+ * @property string $id
  * @property int $user_id
  * @property string $browser_db_id
  * @property array<string, mixed> $public_key_jwk
@@ -24,6 +25,8 @@ use Illuminate\Support\Str;
 #[Hidden(['user_id', 'id'])]
 class UserIdentityKey extends Model
 {
+    use HasUuids;
+
     public const UPDATED_AT = null;
 
     /**

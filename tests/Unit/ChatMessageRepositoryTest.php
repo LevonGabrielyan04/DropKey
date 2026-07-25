@@ -3,6 +3,7 @@
 use App\Models\User;
 use App\Repositories\Interfaces\ChatMessageRepositoryInterface;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Str;
 use Tests\TestCase;
 
 uses(TestCase::class, RefreshDatabase::class);
@@ -14,7 +15,9 @@ it('creates a canonical conversation for two users', function () {
 
     $conversation = $repository->findOrCreateConversation($alice, $bob);
 
-    expect($conversation->user_one_id)->toBe(min($alice->id, $bob->id))
+    expect($conversation->id)->toBeString()
+        ->and(Str::isUuid($conversation->id))->toBeTrue()
+        ->and($conversation->user_one_id)->toBe(min($alice->id, $bob->id))
         ->and($conversation->user_two_id)->toBe(max($alice->id, $bob->id));
 });
 
