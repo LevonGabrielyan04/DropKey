@@ -1,6 +1,6 @@
 import { deriveConversationKey } from './conversationKey.js';
 import { ensureIdentityKeyPair, ensureServerIdentityKey, importPublicKey } from './identity.js';
-import { decryptMessage, encryptMessage } from './messageCrypto.js';
+import { decryptBytes, decryptMessage, encryptBytes, encryptMessage } from './messageCrypto.js';
 
 /**
  * @param {object} options
@@ -69,4 +69,9 @@ export async function establishSession({
     return partnerSession;
 }
 
-export { decryptMessage as decryptChatMessage, encryptMessage as encryptChatMessage };
+export {
+    decryptBytes as decryptChatFile,
+    decryptMessage as decryptChatMessage,
+    encryptBytes as encryptChatFile,
+    encryptMessage as encryptChatMessage,
+};

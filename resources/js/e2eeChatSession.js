@@ -1,6 +1,7 @@
 import {
     buildAttachmentMetadata,
     hydrateMessageContent,
+    prepareEncryptedUpload,
     requestUploadLink,
     serializeChatMessageContent,
     uploadFileToLink,
@@ -641,14 +642,20 @@ document.addEventListener('alpine:init', () => {
                         return;
                     }
 
+                    const encrypted = await prepareEncryptedUpload(file, this.conversationKey);
                     const link = await requestUploadLink({
                         uploadsUrl: this.uploadsUrl,
                         csrfToken: this.csrfToken,
-                        file,
+                        filename: file.name,
+                        contentType: encrypted.uploadContentType,
+                        size: encrypted.uploadSize,
                     });
 
-                    await uploadFileToLink(file, link);
-                    attachment = buildAttachmentMetadata(file, link.path);
+                    await uploadFileToLink(encrypted.body, link);
+                    attachment = buildAttachmentMetadata(file, link.path, {
+                        iv: encrypted.iv,
+                        v: encrypted.v,
+                    });
                 }
 
                 const content = serializeChatMessageContent({ text, attachment });

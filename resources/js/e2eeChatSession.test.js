@@ -261,6 +261,8 @@ describe('redecryptStoredMessages', () => {
                 name: 'file.txt',
                 content_type: 'text/plain',
                 size: 4,
+                v: 1,
+                iv: 'AAAAAAAAAAAAAAAA',
             },
         }));
 
@@ -281,6 +283,8 @@ describe('redecryptStoredMessages', () => {
                 name: 'file.txt',
                 content_type: 'text/plain',
                 size: 4,
+                v: 1,
+                iv: 'AAAAAAAAAAAAAAAA',
             },
             decryptionError: '',
         });

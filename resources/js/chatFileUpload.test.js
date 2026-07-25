@@ -1,14 +1,42 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { deriveConversationKey } from './cryptography/e2ee/conversationKey.js';
+import { importPublicKey } from './cryptography/e2ee/identity.js';
+import { AES_GCM_TAG_BYTES, decryptBytes } from './cryptography/e2ee/messageCrypto.js';
 import {
+    ENCRYPTED_UPLOAD_CONTENT_TYPE,
     buildAttachmentMetadata,
+    encryptedUploadSize,
     flattenUploadHeaders,
     hydrateMessageContent,
     parseChatMessageContent,
+    prepareEncryptedUpload,
     requestUploadLink,
     serializeChatMessageContent,
     uploadFileToLink,
     validateSelectedFile,
 } from './chatFileUpload.js';
+
+/**
+ * @returns {Promise<{ privateKey: CryptoKey, publicJwk: JsonWebKey }>}
+ */
+async function generateEcdhKeyPair() {
+    const keyPair = await globalThis.crypto.subtle.generateKey(
+        { name: 'ECDH', namedCurve: 'P-256' },
+        true,
+        ['deriveBits', 'deriveKey'],
+    );
+
+    return {
+        privateKey: keyPair.privateKey,
+        publicJwk: await globalThis.crypto.subtle.exportKey('jwk', keyPair.publicKey),
+    };
+}
+
+async function conversationKeyForPair(alice, bob, aliceId, bobId) {
+    const bobPublic = await importPublicKey(bob.publicJwk);
+
+    return deriveConversationKey(alice.privateKey, bobPublic, aliceId, bobId);
+}
 
 describe('flattenUploadHeaders', () => {
     it('flattens laravel list headers for fetch', () => {
@@ -38,8 +66,13 @@ describe('validateSelectedFile', () => {
             .toBe('The file may not be greater than 100 bytes.');
     });
 
-    it('accepts files within the size limit', () => {
-        expect(validateSelectedFile({ size: 100, name: 'ok.txt' }, 100)).toBe('');
+    it('rejects plaintext that would exceed the limit after the gcm tag', () => {
+        expect(validateSelectedFile({ size: 90, name: 'almost.bin' }, 100))
+            .toBe('The file may not be greater than 100 bytes.');
+    });
+
+    it('accepts files whose encrypted size fits the limit', () => {
+        expect(validateSelectedFile({ size: 100 - AES_GCM_TAG_BYTES, name: 'ok.txt' }, 100)).toBe('');
     });
 });
 
@@ -52,12 +85,14 @@ describe('serializeChatMessageContent and parseChatMessageContent', () => {
         });
     });
 
-    it('round-trips attachment envelopes', () => {
+    it('round-trips attachment envelopes with encryption metadata', () => {
         const attachment = {
             path: 'uploads/1/abc.txt',
             name: 'notes.txt',
             content_type: 'text/plain',
             size: 12,
+            v: 1,
+            iv: 'AAAAAAAAAAAAAAAA',
         };
 
         const serialized = serializeChatMessageContent({
@@ -74,6 +109,24 @@ describe('serializeChatMessageContent and parseChatMessageContent', () => {
         expect(parseChatMessageContent(serialized)).toEqual({
             text: 'see file',
             attachment,
+        });
+    });
+
+    it('drops attachments that are missing the encryption iv', () => {
+        const serialized = JSON.stringify({
+            v: 1,
+            text: 'see file',
+            attachment: {
+                path: 'uploads/1/abc.txt',
+                name: 'notes.txt',
+                content_type: 'text/plain',
+                size: 12,
+            },
+        });
+
+        expect(parseChatMessageContent(serialized)).toEqual({
+            text: 'see file',
+            attachment: null,
         });
     });
 
@@ -102,6 +155,8 @@ describe('hydrateMessageContent', () => {
                 name: 'file.pdf',
                 content_type: 'application/pdf',
                 size: 2048,
+                v: 1,
+                iv: 'BBBBBBBBBBBBBBBB',
             },
         });
 
@@ -112,6 +167,8 @@ describe('hydrateMessageContent', () => {
                 name: 'file.pdf',
                 content_type: 'application/pdf',
                 size: 2048,
+                v: 1,
+                iv: 'BBBBBBBBBBBBBBBB',
             },
             decryptionError: '',
         });
@@ -119,22 +176,49 @@ describe('hydrateMessageContent', () => {
 });
 
 describe('buildAttachmentMetadata', () => {
-    it('builds metadata from a browser file and storage path', () => {
+    it('builds metadata from a browser file, storage path, and encryption iv', () => {
         const file = new File(['hello'], 'hello.txt', { type: 'text/plain' });
 
-        expect(buildAttachmentMetadata(file, 'uploads/9/ulid.txt')).toEqual({
+        expect(buildAttachmentMetadata(file, 'uploads/9/ulid.txt', {
+            iv: 'CCCCCCCCCCCCCCCC',
+            v: 1,
+        })).toEqual({
             path: 'uploads/9/ulid.txt',
             name: 'hello.txt',
             content_type: 'text/plain',
             size: 5,
+            v: 1,
+            iv: 'CCCCCCCCCCCCCCCC',
         });
     });
 
     it('falls back to octet-stream when the browser omits a type', () => {
         const file = new File(['abc'], 'mystery.bin');
 
-        expect(buildAttachmentMetadata(file, 'uploads/9/ulid.bin').content_type)
-            .toBe('application/octet-stream');
+        expect(buildAttachmentMetadata(file, 'uploads/9/ulid.bin', {
+            iv: 'DDDDDDDDDDDDDDDD',
+        }).content_type).toBe('application/octet-stream');
+    });
+});
+
+describe('prepareEncryptedUpload', () => {
+    it('encrypts file bytes with the conversation key', async () => {
+        const alice = await generateEcdhKeyPair();
+        const bob = await generateEcdhKeyPair();
+        const conversationKey = await conversationKeyForPair(alice, bob, 1, 2);
+        const file = new File(['hello'], 'hello.txt', { type: 'text/plain' });
+
+        const prepared = await prepareEncryptedUpload(file, conversationKey);
+        const decrypted = await decryptBytes(
+            prepared.body,
+            prepared.iv,
+            conversationKey,
+            prepared.v,
+        );
+
+        expect(prepared.uploadContentType).toBe(ENCRYPTED_UPLOAD_CONTENT_TYPE);
+        expect(prepared.uploadSize).toBe(encryptedUploadSize(file.size));
+        expect(new TextDecoder().decode(decrypted)).toBe('hello');
     });
 });
 
@@ -144,14 +228,13 @@ describe('requestUploadLink and uploadFileToLink', () => {
         vi.restoreAllMocks();
     });
 
-    it('requests a signed upload link from the api', async () => {
-        const file = new File(['hello'], 'hello.txt', { type: 'text/plain' });
+    it('requests a signed upload link for encrypted ciphertext', async () => {
         const fetchMock = vi.fn().mockResolvedValue({
             ok: true,
             status: 201,
             json: async () => ({
                 url: 'https://r2.example/upload',
-                headers: { 'Content-Type': ['text/plain'] },
+                headers: { 'Content-Type': [ENCRYPTED_UPLOAD_CONTENT_TYPE] },
                 path: 'uploads/1/hello.txt',
                 max_file_bytes: 10_000_000,
                 expires_in: 300,
@@ -163,7 +246,9 @@ describe('requestUploadLink and uploadFileToLink', () => {
         const link = await requestUploadLink({
             uploadsUrl: '/api/uploads',
             csrfToken: 'token',
-            file,
+            filename: 'hello.txt',
+            contentType: ENCRYPTED_UPLOAD_CONTENT_TYPE,
+            size: encryptedUploadSize(5),
         });
 
         expect(fetchMock).toHaveBeenCalledWith('/api/uploads', {
@@ -176,16 +261,14 @@ describe('requestUploadLink and uploadFileToLink', () => {
             credentials: 'same-origin',
             body: JSON.stringify({
                 filename: 'hello.txt',
-                content_type: 'text/plain',
-                size: 5,
+                content_type: ENCRYPTED_UPLOAD_CONTENT_TYPE,
+                size: encryptedUploadSize(5),
             }),
         });
         expect(link.path).toBe('uploads/1/hello.txt');
     });
 
     it('surfaces storage capacity errors', async () => {
-        const file = new File(['hello'], 'hello.txt', { type: 'text/plain' });
-
         vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
             ok: false,
             status: 507,
@@ -194,20 +277,22 @@ describe('requestUploadLink and uploadFileToLink', () => {
         await expect(requestUploadLink({
             uploadsUrl: '/api/uploads',
             csrfToken: 'token',
-            file,
+            filename: 'hello.txt',
+            contentType: ENCRYPTED_UPLOAD_CONTENT_TYPE,
+            size: 21,
         })).rejects.toThrow(/capacity/i);
     });
 
-    it('puts the file to the signed upload url', async () => {
-        const file = new File(['hello'], 'hello.txt', { type: 'text/plain' });
+    it('puts ciphertext to the signed upload url', async () => {
+        const body = new Uint8Array([1, 2, 3, 4, 5]).buffer;
         const fetchMock = vi.fn().mockResolvedValue({ ok: true, status: 200 });
 
         vi.stubGlobal('fetch', fetchMock);
 
-        await uploadFileToLink(file, {
+        await uploadFileToLink(body, {
             url: 'https://r2.example/upload',
             headers: {
-                'Content-Type': ['text/plain'],
+                'Content-Type': [ENCRYPTED_UPLOAD_CONTENT_TYPE],
                 'Content-Length': ['5'],
             },
         });
@@ -215,10 +300,10 @@ describe('requestUploadLink and uploadFileToLink', () => {
         expect(fetchMock).toHaveBeenCalledWith('https://r2.example/upload', {
             method: 'PUT',
             headers: {
-                'Content-Type': 'text/plain',
+                'Content-Type': ENCRYPTED_UPLOAD_CONTENT_TYPE,
                 'Content-Length': '5',
             },
-            body: file,
+            body,
         });
     });
 });

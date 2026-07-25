@@ -1,7 +1,24 @@
 /**
  * Client-side helpers for deferred chat file uploads to Cloudflare R2.
- * Files stay local until send; then we request a signed PUT URL and upload.
+ * Files stay local until send; then we encrypt with the conversation key,
+ * request a signed PUT URL, and upload ciphertext only.
  */
+
+import {
+    AES_GCM_TAG_BYTES,
+    PAYLOAD_VERSION,
+    encryptBytes,
+} from './cryptography/e2ee/messageCrypto.js';
+
+export const ENCRYPTED_UPLOAD_CONTENT_TYPE = 'application/octet-stream';
+
+/**
+ * @param {number} plaintextBytes
+ * @returns {number}
+ */
+export function encryptedUploadSize(plaintextBytes) {
+    return plaintextBytes + AES_GCM_TAG_BYTES;
+}
 
 /**
  * @param {Record<string, string[]|string>|null|undefined} headers
@@ -40,7 +57,7 @@ export function validateSelectedFile(file, maxFileBytes) {
         return 'The selected file is empty.';
     }
 
-    if (file.size > maxFileBytes) {
+    if (encryptedUploadSize(file.size) > maxFileBytes) {
         return `The file may not be greater than ${maxFileBytes} bytes.`;
     }
 
@@ -48,10 +65,38 @@ export function validateSelectedFile(file, maxFileBytes) {
 }
 
 /**
+ * Encrypt a browser File with the pairwise conversation key before upload.
+ *
+ * @param {File} file
+ * @param {CryptoKey} conversationKey
+ * @returns {Promise<{
+ *   body: ArrayBuffer,
+ *   uploadSize: number,
+ *   uploadContentType: string,
+ *   iv: string,
+ *   v: number,
+ * }>}
+ */
+export async function prepareEncryptedUpload(file, conversationKey) {
+    const plaintext = await file.arrayBuffer();
+    const encrypted = await encryptBytes(plaintext, conversationKey);
+
+    return {
+        body: encrypted.ciphertext,
+        uploadSize: encrypted.ciphertext.byteLength,
+        uploadContentType: ENCRYPTED_UPLOAD_CONTENT_TYPE,
+        iv: encrypted.iv,
+        v: encrypted.v,
+    };
+}
+
+/**
  * @param {{
  *   uploadsUrl: string,
  *   csrfToken: string,
- *   file: File,
+ *   filename: string,
+ *   contentType: string,
+ *   size: number,
  * }} options
  * @returns {Promise<{
  *   url: string,
@@ -61,7 +106,7 @@ export function validateSelectedFile(file, maxFileBytes) {
  *   expires_in: number,
  * }>}
  */
-export async function requestUploadLink({ uploadsUrl, csrfToken, file }) {
+export async function requestUploadLink({ uploadsUrl, csrfToken, filename, contentType, size }) {
     const response = await fetch(uploadsUrl, {
         method: 'POST',
         headers: {
@@ -71,9 +116,9 @@ export async function requestUploadLink({ uploadsUrl, csrfToken, file }) {
         },
         credentials: 'same-origin',
         body: JSON.stringify({
-            filename: file.name,
-            content_type: file.type || 'application/octet-stream',
-            size: file.size,
+            filename,
+            content_type: contentType,
+            size,
         }),
     });
 
@@ -89,14 +134,14 @@ export async function requestUploadLink({ uploadsUrl, csrfToken, file }) {
 }
 
 /**
- * @param {File} file
+ * @param {Blob|ArrayBuffer|File} body
  * @param {{ url: string, headers?: Record<string, string[]|string> }} link
  */
-export async function uploadFileToLink(file, link) {
+export async function uploadFileToLink(body, link) {
     const response = await fetch(link.url, {
         method: 'PUT',
         headers: flattenUploadHeaders(link.headers),
-        body: file,
+        body,
     });
 
     if (! response.ok) {
@@ -107,21 +152,38 @@ export async function uploadFileToLink(file, link) {
 /**
  * @param {File} file
  * @param {string} path
- * @returns {{ path: string, name: string, content_type: string, size: number }}
+ * @param {{ iv: string, v?: number }} encryption
+ * @returns {{
+ *   path: string,
+ *   name: string,
+ *   content_type: string,
+ *   size: number,
+ *   v: number,
+ *   iv: string,
+ * }}
  */
-export function buildAttachmentMetadata(file, path) {
+export function buildAttachmentMetadata(file, path, encryption) {
     return {
         path,
         name: file.name,
         content_type: file.type || 'application/octet-stream',
         size: file.size,
+        v: encryption.v ?? PAYLOAD_VERSION,
+        iv: encryption.iv,
     };
 }
 
 /**
  * @param {{
  *   text?: string,
- *   attachment?: { path: string, name: string, content_type: string, size: number }|null,
+ *   attachment?: {
+ *     path: string,
+ *     name: string,
+ *     content_type: string,
+ *     size: number,
+ *     v: number,
+ *     iv: string,
+ *   }|null,
  * }} content
  * @returns {string}
  */
@@ -139,7 +201,14 @@ export function serializeChatMessageContent({ text = '', attachment = null }) {
 
 /**
  * @param {unknown} attachment
- * @returns {{ path: string, name: string, content_type: string, size: number }|null}
+ * @returns {{
+ *   path: string,
+ *   name: string,
+ *   content_type: string,
+ *   size: number,
+ *   v: number,
+ *   iv: string,
+ * }|null}
  */
 function normalizeAttachment(attachment) {
     if (! attachment || typeof attachment !== 'object') {
@@ -148,10 +217,22 @@ function normalizeAttachment(attachment) {
 
     const path = attachment.path;
     const name = attachment.name;
+    const iv = attachment.iv;
 
-    if (typeof path !== 'string' || path === '' || typeof name !== 'string' || name === '') {
+    if (
+        typeof path !== 'string'
+        || path === ''
+        || typeof name !== 'string'
+        || name === ''
+        || typeof iv !== 'string'
+        || iv === ''
+    ) {
         return null;
     }
+
+    const version = Number.isFinite(Number(attachment.v))
+        ? Number(attachment.v)
+        : PAYLOAD_VERSION;
 
     return {
         path,
@@ -162,6 +243,8 @@ function normalizeAttachment(attachment) {
         size: Number.isFinite(Number(attachment.size))
             ? Number(attachment.size)
             : 0,
+        v: version,
+        iv,
     };
 }
 
@@ -169,7 +252,14 @@ function normalizeAttachment(attachment) {
  * @param {string|null|undefined} plaintext
  * @returns {{
  *   text: string,
- *   attachment: { path: string, name: string, content_type: string, size: number }|null,
+ *   attachment: {
+ *     path: string,
+ *     name: string,
+ *     content_type: string,
+ *     size: number,
+ *     v: number,
+ *     iv: string,
+ *   }|null,
  * }}
  */
 export function parseChatMessageContent(plaintext) {
@@ -202,7 +292,14 @@ export function parseChatMessageContent(plaintext) {
  * @param {string} decryptionError
  * @returns {{
  *   plaintext: string|null,
- *   attachment: { path: string, name: string, content_type: string, size: number }|null,
+ *   attachment: {
+ *     path: string,
+ *     name: string,
+ *     content_type: string,
+ *     size: number,
+ *     v: number,
+ *     iv: string,
+ *   }|null,
  *   decryptionError: string,
  * }}
  */

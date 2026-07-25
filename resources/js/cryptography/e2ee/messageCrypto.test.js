@@ -2,8 +2,11 @@ import { describe, expect, it } from 'vitest';
 import { deriveConversationKey } from './conversationKey.js';
 import { importPublicKey } from './identity.js';
 import {
+    AES_GCM_TAG_BYTES,
     PAYLOAD_VERSION,
+    decryptBytes,
     decryptMessage,
+    encryptBytes,
     encryptMessage,
     parseChatPayload,
 } from './messageCrypto.js';
@@ -55,6 +58,24 @@ describe('messageCrypto', () => {
         expect(typeof parsed.ciphertext).toBe('string');
         expect(typeof parsed.iv).toBe('string');
         expect(atob(parsed.iv)).toHaveLength(12);
+    });
+
+    it('encrypts and decrypts binary file bytes', async () => {
+        const alice = await generateEcdhKeyPair();
+        const bob = await generateEcdhKeyPair();
+        const conversationKey = await conversationKeyForPair(alice, bob, 7, 8);
+        const plaintext = new Uint8Array([0, 1, 2, 255, 128, 64]).buffer;
+
+        const encrypted = await encryptBytes(plaintext, conversationKey);
+        const decrypted = await decryptBytes(
+            encrypted.ciphertext,
+            encrypted.iv,
+            conversationKey,
+            encrypted.v,
+        );
+
+        expect(encrypted.ciphertext.byteLength).toBe(plaintext.byteLength + AES_GCM_TAG_BYTES);
+        expect(new Uint8Array(decrypted)).toEqual(new Uint8Array(plaintext));
     });
 
     it('rejects unsupported payload versions', async () => {
