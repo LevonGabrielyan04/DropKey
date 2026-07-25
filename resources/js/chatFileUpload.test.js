@@ -5,11 +5,13 @@ import { AES_GCM_TAG_BYTES, decryptBytes } from './cryptography/e2ee/messageCryp
 import {
     ENCRYPTED_UPLOAD_CONTENT_TYPE,
     buildAttachmentMetadata,
+    downloadAndDecryptAttachment,
     encryptedUploadSize,
     flattenUploadHeaders,
     hydrateMessageContent,
     parseChatMessageContent,
     prepareEncryptedUpload,
+    requestDownloadLink,
     requestUploadLink,
     serializeChatMessageContent,
     uploadFileToLink,
@@ -305,5 +307,108 @@ describe('requestUploadLink and uploadFileToLink', () => {
             },
             body,
         });
+    });
+});
+
+describe('requestDownloadLink and downloadAndDecryptAttachment', () => {
+    beforeEach(() => {
+        vi.unstubAllGlobals();
+        vi.restoreAllMocks();
+    });
+
+    it('requests a signed download link for an attachment path', async () => {
+        const fetchMock = vi.fn().mockResolvedValue({
+            ok: true,
+            status: 200,
+            json: async () => ({
+                url: 'https://r2.example/download',
+                path: 'uploads/1/01ARZ3NDEKTSV4RRFFQ69G5FAV.bin',
+                expires_in: 300,
+            }),
+        });
+
+        vi.stubGlobal('fetch', fetchMock);
+
+        const link = await requestDownloadLink({
+            downloadsUrl: '/api/uploads/download',
+            csrfToken: 'token',
+            path: 'uploads/1/01ARZ3NDEKTSV4RRFFQ69G5FAV.bin',
+        });
+
+        expect(fetchMock).toHaveBeenCalledWith('/api/uploads/download', {
+            method: 'POST',
+            headers: {
+                Accept: 'application/json',
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': 'token',
+            },
+            credentials: 'same-origin',
+            body: JSON.stringify({
+                path: 'uploads/1/01ARZ3NDEKTSV4RRFFQ69G5FAV.bin',
+            }),
+        });
+        expect(link.url).toBe('https://r2.example/download');
+    });
+
+    it('downloads, decrypts, and saves the plaintext attachment', async () => {
+        const alice = await generateEcdhKeyPair();
+        const bob = await generateEcdhKeyPair();
+        const conversationKey = await conversationKeyForPair(alice, bob, 1, 2);
+        const encrypted = await prepareEncryptedUpload(
+            new File(['secret-file'], 'notes.txt', { type: 'text/plain' }),
+            conversationKey,
+        );
+        const saved = [];
+
+        vi.stubGlobal('fetch', vi.fn()
+            .mockResolvedValueOnce({
+                ok: true,
+                status: 200,
+                json: async () => ({
+                    url: 'https://r2.example/download',
+                    path: 'uploads/1/01ARZ3NDEKTSV4RRFFQ69G5FAV.txt',
+                    expires_in: 300,
+                }),
+            })
+            .mockResolvedValueOnce({
+                ok: true,
+                status: 200,
+                arrayBuffer: async () => encrypted.body,
+            }));
+
+        await downloadAndDecryptAttachment({
+            attachment: {
+                path: 'uploads/1/01ARZ3NDEKTSV4RRFFQ69G5FAV.txt',
+                name: 'notes.txt',
+                content_type: 'text/plain',
+                size: 11,
+                v: encrypted.v,
+                iv: encrypted.iv,
+            },
+            conversationKey,
+            downloadsUrl: '/api/uploads/download',
+            csrfToken: 'token',
+            saveBlob: (blob, filename) => {
+                saved.push({ blob, filename });
+            },
+        });
+
+        expect(saved).toHaveLength(1);
+        expect(saved[0].filename).toBe('notes.txt');
+        expect(saved[0].blob.type).toBe('text/plain');
+        expect(await saved[0].blob.text()).toBe('secret-file');
+    });
+
+    it('surfaces authorization failures from the download link endpoint', async () => {
+        vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+            ok: false,
+            status: 403,
+        }));
+
+        await expect(requestDownloadLink({
+            downloadsUrl: '/api/uploads/download',
+            csrfToken: 'token',
+            path: 'uploads/1/01ARZ3NDEKTSV4RRFFQ69G5FAV.bin',
+        })).rejects.toThrow(/authorized/i);
     });
 });

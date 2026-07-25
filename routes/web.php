@@ -60,6 +60,9 @@ Route::middleware(['throttle:60,1', 'verified'])->group(function () {
         Route::post('/uploads', [FileUploadController::class, 'store'])
             ->middleware(['throttle:uploads', 'upload-limit'])
             ->name('api.uploads.store');
+        Route::post('/uploads/download', [FileUploadController::class, 'download'])
+            ->middleware('throttle:uploads')
+            ->name('api.uploads.download');
     });
 });
 

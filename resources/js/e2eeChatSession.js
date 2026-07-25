@@ -1,5 +1,6 @@
 import {
     buildAttachmentMetadata,
+    downloadAndDecryptAttachment,
     hydrateMessageContent,
     prepareEncryptedUpload,
     requestUploadLink,
@@ -247,6 +248,7 @@ document.addEventListener('alpine:init', () => {
         messagesUrl: '',
         sendUrl: '',
         uploadsUrl: '',
+        downloadsUrl: '',
         uploadMaxFileBytes: 10 * 1024 * 1024,
         messageViewedUrlTemplate: '',
         registerUrl: '',
@@ -257,6 +259,9 @@ document.addEventListener('alpine:init', () => {
         autoDeleteUrl: '',
         autoDeleteSaving: false,
         autoDeleteError: '',
+        downloadingPath: '',
+        downloadError: '',
+        downloadErrorPath: '',
 
         get canSendMessage() {
             return this.ready
@@ -274,6 +279,7 @@ document.addEventListener('alpine:init', () => {
             this.messagesUrl = this.$el.dataset.messagesUrl ?? '';
             this.sendUrl = this.$el.dataset.sendUrl ?? '';
             this.uploadsUrl = this.$el.dataset.uploadsUrl ?? '';
+            this.downloadsUrl = this.$el.dataset.downloadsUrl ?? '';
             this.uploadMaxFileBytes = Number(this.$el.dataset.uploadMaxFileBytes)
                 || (10 * 1024 * 1024);
             this.messageViewedUrlTemplate = this.$el.dataset.messageViewedUrlTemplate ?? '';
@@ -325,6 +331,37 @@ document.addEventListener('alpine:init', () => {
         clearSelectedFile() {
             this.selectedFile = null;
             this.selectedFileName = '';
+        },
+
+        async downloadAttachment(attachment) {
+            if (! attachment || ! this.ready || ! this.conversationKey || this.downloadingPath !== '') {
+                return;
+            }
+
+            if (! this.downloadsUrl) {
+                this.downloadError = 'File downloads are unavailable.';
+                return;
+            }
+
+            this.downloadingPath = attachment.path;
+            this.downloadError = '';
+            this.downloadErrorPath = '';
+
+            try {
+                await downloadAndDecryptAttachment({
+                    attachment,
+                    conversationKey: this.conversationKey,
+                    downloadsUrl: this.downloadsUrl,
+                    csrfToken: this.csrfToken,
+                });
+            } catch (error) {
+                this.downloadErrorPath = attachment.path;
+                this.downloadError = error instanceof Error && error.message !== ''
+                    ? error.message
+                    : 'Failed to download file.';
+            } finally {
+                this.downloadingPath = '';
+            }
         },
 
         destroy() {

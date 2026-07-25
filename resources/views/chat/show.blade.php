@@ -12,6 +12,7 @@
         data-messages-url="{{ route('messages.index', $recipient) }}"
         data-send-url="{{ route('messages.store') }}"
         data-uploads-url="{{ route('api.uploads.store') }}"
+        data-downloads-url="{{ route('api.uploads.download') }}"
         data-upload-max-file-bytes="{{ (int) config('filesystems.upload.max_file_bytes') }}"
         data-message-viewed-url-template="{{ route('messages.viewed', ['message' => '__PUBLIC_ID__']) }}"
         data-conversation-public-key="{{ $conversation?->public_key ?? '' }}"
@@ -121,11 +122,22 @@
                         class="mt-2 flex items-center gap-2 border-t-2 border-zinc-950/20 pt-2 text-xs dark:border-zinc-100/20"
                     >
                         <flux:icon.paper-clip class="size-3.5 shrink-0" />
-                        <span
-                            class="min-w-0 truncate font-bold uppercase tracking-[0.08em]"
-                            x-text="message.attachment ? message.attachment.name : ''"
-                        ></span>
+                        <button
+                            type="button"
+                            class="min-w-0 truncate font-bold uppercase tracking-[0.08em] underline decoration-2 underline-offset-2 hover:text-emerald-700 disabled:cursor-wait disabled:no-underline disabled:opacity-60 dark:hover:text-emerald-400"
+                            :disabled="downloadingPath === message.attachment.path"
+                            @click="downloadAttachment(message.attachment)"
+                            x-text="downloadingPath === message.attachment.path
+                                ? '{{ __('Downloading…') }}'
+                                : (message.attachment ? message.attachment.name : '')"
+                        ></button>
                     </div>
+                    <p
+                        x-show="downloadError && message.attachment && downloadErrorPath === message.attachment.path"
+                        x-cloak
+                        x-text="downloadError"
+                        class="mt-1 text-[10px] uppercase tracking-[0.08em] text-red-600"
+                    ></p>
                     <p
                         x-show="message.decryptionError"
                         x-cloak

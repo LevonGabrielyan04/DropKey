@@ -7,6 +7,7 @@
 import {
     AES_GCM_TAG_BYTES,
     PAYLOAD_VERSION,
+    decryptBytes,
     encryptBytes,
 } from './cryptography/e2ee/messageCrypto.js';
 
@@ -134,6 +135,41 @@ export async function requestUploadLink({ uploadsUrl, csrfToken, filename, conte
 }
 
 /**
+ * @param {{
+ *   downloadsUrl: string,
+ *   csrfToken: string,
+ *   path: string,
+ * }} options
+ * @returns {Promise<{ url: string, path: string, expires_in: number }>}
+ */
+export async function requestDownloadLink({ downloadsUrl, csrfToken, path }) {
+    const response = await fetch(downloadsUrl, {
+        method: 'POST',
+        headers: {
+            Accept: 'application/json',
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': csrfToken,
+        },
+        credentials: 'same-origin',
+        body: JSON.stringify({ path }),
+    });
+
+    if (response.status === 403) {
+        throw new Error('You are not authorized to download this file.');
+    }
+
+    if (response.status === 404) {
+        throw new Error('The file is no longer available.');
+    }
+
+    if (! response.ok) {
+        throw new Error('Failed to create download link.');
+    }
+
+    return response.json();
+}
+
+/**
  * @param {Blob|ArrayBuffer|File} body
  * @param {{ url: string, headers?: Record<string, string[]|string> }} link
  */
@@ -147,6 +183,81 @@ export async function uploadFileToLink(body, link) {
     if (! response.ok) {
         throw new Error('Failed to upload file.');
     }
+}
+
+/**
+ * @param {string} url
+ * @returns {Promise<ArrayBuffer>}
+ */
+export async function fetchEncryptedAttachment(url) {
+    const response = await fetch(url);
+
+    if (! response.ok) {
+        throw new Error('Failed to download file.');
+    }
+
+    return response.arrayBuffer();
+}
+
+/**
+ * Decrypt an uploaded attachment with the conversation key and trigger a browser save.
+ *
+ * @param {{
+ *   attachment: {
+ *     path: string,
+ *     name: string,
+ *     content_type: string,
+ *     size: number,
+ *     v: number,
+ *     iv: string,
+ *   },
+ *   conversationKey: CryptoKey,
+ *   downloadsUrl: string,
+ *   csrfToken: string,
+ *   saveBlob?: (blob: Blob, filename: string) => void,
+ * }} options
+ */
+export async function downloadAndDecryptAttachment({
+    attachment,
+    conversationKey,
+    downloadsUrl,
+    csrfToken,
+    saveBlob = triggerBrowserDownload,
+}) {
+    const link = await requestDownloadLink({
+        downloadsUrl,
+        csrfToken,
+        path: attachment.path,
+    });
+    const ciphertext = await fetchEncryptedAttachment(link.url);
+    const plaintext = await decryptBytes(
+        ciphertext,
+        attachment.iv,
+        conversationKey,
+        attachment.v,
+    );
+    const blob = new Blob([plaintext], {
+        type: attachment.content_type || 'application/octet-stream',
+    });
+
+    saveBlob(blob, attachment.name);
+}
+
+/**
+ * @param {Blob} blob
+ * @param {string} filename
+ */
+export function triggerBrowserDownload(blob, filename) {
+    const objectUrl = URL.createObjectURL(blob);
+    const anchor = document.createElement('a');
+
+    anchor.href = objectUrl;
+    anchor.download = filename;
+    anchor.rel = 'noopener';
+    document.body.appendChild(anchor);
+    anchor.click();
+    anchor.remove();
+    URL.revokeObjectURL(objectUrl);
 }
 
 /**
