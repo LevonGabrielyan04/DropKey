@@ -108,3 +108,40 @@ it('refuses uploads when the user has already exceeded their storage quota', fun
 
     $service->ensureWithinUploadLimit($user);
 })->throws(CloudStorageCapacityExceededException::class);
+
+it('reserves pending bytes so concurrent upload links cannot bypass the quota', function () {
+    config(['filesystems.upload.max_storage_bytes' => 100]);
+
+    Storage::disk('r2')->buildTemporaryUploadUrlsUsing(function (string $path, $expiration, array $options = []) {
+        return [
+            'url' => 'https://r2.example/upload?signature=test',
+            'headers' => [
+                'Content-Type' => [$options['ContentType']],
+                'Content-Length' => [(string) $options['ContentLength']],
+            ],
+        ];
+    });
+
+    $user = User::factory()->make(['id' => 1]);
+
+    Storage::disk('r2')->put("uploads/{$user->id}/existing.bin", str_repeat('a', 90));
+    Cache::flush();
+
+    $service = app(R2UploadService::class);
+
+    $service->createUploadLink(new CreateFileUploadLinkData(
+        user: $user,
+        filename: 'first.bin',
+        contentType: 'application/octet-stream',
+        size: 10,
+    ));
+
+    expect(fn () => $service->createUploadLink(new CreateFileUploadLinkData(
+        user: $user,
+        filename: 'second.bin',
+        contentType: 'application/octet-stream',
+        size: 10,
+    )))->toThrow(CloudStorageCapacityExceededException::class);
+
+    expect(fn () => $service->ensureWithinUploadLimit($user))->toThrow(CloudStorageCapacityExceededException::class);
+});

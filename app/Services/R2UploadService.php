@@ -9,16 +9,19 @@ use App\DTOs\FileUploadLinkData;
 use App\Exceptions\CloudStorageCapacityExceededException;
 use App\Models\User;
 use App\Services\Interfaces\R2UploadServiceInterface;
+use App\Services\Interfaces\UserUploadStorageTrackerInterface;
 use Illuminate\Contracts\Filesystem\Filesystem;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
-use League\Flysystem\FileAttributes;
-use League\Flysystem\StorageAttributes;
 
 class R2UploadService implements R2UploadServiceInterface
 {
+    public function __construct(
+        protected UserUploadStorageTrackerInterface $storage,
+    ) {}
+
     public function createUploadLink(CreateFileUploadLinkData $data): FileUploadLinkData
     {
         $maxFileBytes = (int) config('filesystems.upload.max_file_bytes');
@@ -59,6 +62,8 @@ class R2UploadService implements R2UploadServiceInterface
                 'ContentLength' => $data->size,
             ]);
 
+            $this->storage->reservePendingBytes($data->user, $path, $data->size, $expiresAt, $diskName);
+
             return new FileUploadLinkData(
                 url: $upload['url'],
                 headers: $upload['headers'],
@@ -74,7 +79,7 @@ class R2UploadService implements R2UploadServiceInterface
         $diskName ??= (string) config('filesystems.upload.disk');
         $disk ??= Storage::disk($diskName);
         $maxStorageBytes ??= (int) config('filesystems.upload.max_storage_bytes');
-        $occupiedBytes = $this->occupiedBytes($user, $disk, $diskName);
+        $occupiedBytes = $this->storage->occupiedBytes($user, $disk, $diskName);
 
         $exceedsLimit = $requestedBytes <= 0
             ? $occupiedBytes >= $maxStorageBytes
@@ -98,56 +103,14 @@ class R2UploadService implements R2UploadServiceInterface
 
         return sprintf(
             '%s/%s.%s',
-            $this->userPrefix($user),
+            $this->storage->userPrefix($user),
             (string) Str::ulid(),
             $safeExtension,
         );
     }
 
-    private function occupiedBytes(User $user, Filesystem $disk, string $diskName): int
-    {
-        $ttlSeconds = (int) config('filesystems.upload.occupied_bytes_cache_seconds');
-
-        if ($ttlSeconds <= 0) {
-            return $this->calculateOccupiedBytes($user, $disk);
-        }
-
-        return (int) Cache::remember(
-            $this->occupiedBytesCacheKey($diskName, $user),
-            $ttlSeconds,
-            fn (): int => $this->calculateOccupiedBytes($user, $disk),
-        );
-    }
-
-    private function calculateOccupiedBytes(User $user, Filesystem $disk): int
-    {
-        $total = 0;
-        $prefix = $this->userPrefix($user);
-
-        foreach ($disk->getDriver()->listContents($prefix, true) as $attributes) {
-            if (! $attributes instanceof StorageAttributes || ! $attributes->isFile()) {
-                continue;
-            }
-
-            /** @var FileAttributes $attributes */
-            $total += $attributes->fileSize() ?? 0;
-        }
-
-        return $total;
-    }
-
-    private function userPrefix(User $user): string
-    {
-        return sprintf('uploads/%d', $user->id);
-    }
-
     private function capacityLockKey(User $user): string
     {
         return "r2-upload-capacity:{$user->id}";
-    }
-
-    private function occupiedBytesCacheKey(string $diskName, User $user): string
-    {
-        return "r2-storage-occupied-bytes:{$diskName}:{$user->id}";
     }
 }

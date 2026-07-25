@@ -82,7 +82,10 @@ return [
     |
     | These limits govern temporary upload URL generation for Cloudflare R2.
     | Individual uploads are capped at max_file_bytes, and new upload links are
-    | refused once a user's occupied storage would exceed max_storage_bytes.
+    | refused once a user's occupied storage plus outstanding (pending) upload
+    | URL reservations would exceed max_storage_bytes. Pending reservations
+    | last for url_expires_minutes so concurrent link requests cannot bypass
+    | the per-user quota before objects land in R2.
     |
     */
 

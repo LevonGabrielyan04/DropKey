@@ -122,3 +122,37 @@ it('requires authentication to request an upload link', function () {
         'size' => 100,
     ])->assertUnauthorized();
 });
+
+it('rejects a second upload link that would exceed quota via pending reservations', function () {
+    config(['filesystems.upload.max_storage_bytes' => 50]);
+
+    Storage::disk('r2')->buildTemporaryUploadUrlsUsing(function () {
+        return [
+            'url' => 'https://r2.example/presigned-put',
+            'headers' => [],
+        ];
+    });
+
+    $user = User::factory()->create();
+
+    Storage::disk('r2')->put("uploads/{$user->id}/partial.bin", str_repeat('b', 40));
+    Cache::flush();
+
+    $this->actingAs($user)
+        ->postJson(route('api.uploads.store'), [
+            'filename' => 'first.bin',
+            'content_type' => 'application/octet-stream',
+            'size' => 10,
+        ])
+        ->assertCreated();
+
+    $this->actingAs($user)
+        ->postJson(route('api.uploads.store'), [
+            'filename' => 'second.bin',
+            'content_type' => 'application/octet-stream',
+            'size' => 10,
+        ])
+        ->assertStatus(507)
+        ->assertJsonPath('message', 'Cloud storage capacity limit exceeded.')
+        ->assertJsonPath('occupied_bytes', 50);
+});

@@ -16,8 +16,9 @@ interface R2UploadServiceInterface
     public function createUploadLink(CreateFileUploadLinkData $data): FileUploadLinkData;
 
     /**
-     * Refuse the request when the user's occupied storage plus any requested
-     * bytes would exceed the configured per-user upload quota.
+     * Refuse the request when the user's on-disk storage, outstanding upload
+     * URL reservations, and any requested bytes would exceed the configured
+     * per-user upload quota.
      */
     public function ensureWithinUploadLimit(User $user, int $requestedBytes = 0): void;
 }
