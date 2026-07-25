@@ -4,9 +4,10 @@ declare(strict_types=1);
 
 namespace App\Actions;
 
+use App\Contracts\ExpirableCleanupInterface;
 use App\Repositories\Interfaces\ChatMessageRepositoryInterface;
 
-class DeleteExpiredChatMessagesAction
+class DeleteExpiredChatMessagesAction implements ExpirableCleanupInterface
 {
     public function __construct(private ChatMessageRepositoryInterface $chatMessages) {}
 
@@ -16,5 +17,10 @@ class DeleteExpiredChatMessagesAction
     public function execute(): int
     {
         return $this->chatMessages->deleteExpired();
+    }
+
+    public function getEntityName(): string
+    {
+        return 'chat message(s)';
     }
 }

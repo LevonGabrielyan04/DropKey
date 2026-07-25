@@ -4,9 +4,10 @@ declare(strict_types=1);
 
 namespace App\Actions;
 
+use App\Contracts\ExpirableCleanupInterface;
 use App\Repositories\Interfaces\SendRepositoryInterface;
 
-class DeleteExpiredSendsAction
+class DeleteExpiredSendsAction implements ExpirableCleanupInterface
 {
     public function __construct(private SendRepositoryInterface $sendRepository) {}
 
@@ -16,5 +17,10 @@ class DeleteExpiredSendsAction
     public function execute(): int
     {
         return $this->sendRepository->deleteExpired();
+    }
+
+    public function getEntityName(): string
+    {
+        return 'send(s)';
     }
 }

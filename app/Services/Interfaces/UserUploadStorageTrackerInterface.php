@@ -30,4 +30,9 @@ interface UserUploadStorageTrackerInterface
      * Object-key prefix for the user's uploads on the cloud disk.
      */
     public function userPrefix(User $user): string;
+
+    /**
+     * Drop the cached on-disk usage so the next quota check recounts objects.
+     */
+    public function forgetOccupiedBytes(int $userId, ?string $diskName = null): void;
 }

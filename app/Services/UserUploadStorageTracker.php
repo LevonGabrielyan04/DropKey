@@ -53,6 +53,13 @@ class UserUploadStorageTracker implements UserUploadStorageTrackerInterface
         return sprintf('uploads/%d', $user->id);
     }
 
+    public function forgetOccupiedBytes(int $userId, ?string $diskName = null): void
+    {
+        $diskName ??= (string) config('filesystems.upload.disk');
+
+        Cache::forget($this->occupiedBytesCacheKeyForUserId($diskName, $userId));
+    }
+
     private function diskOccupiedBytes(User $user, Filesystem $disk, string $diskName): int
     {
         $ttlSeconds = (int) config('filesystems.upload.occupied_bytes_cache_seconds');
@@ -145,7 +152,12 @@ class UserUploadStorageTracker implements UserUploadStorageTrackerInterface
 
     private function occupiedBytesCacheKey(string $diskName, User $user): string
     {
-        return "r2-storage-occupied-bytes:{$diskName}:{$user->id}";
+        return $this->occupiedBytesCacheKeyForUserId($diskName, $user->id);
+    }
+
+    private function occupiedBytesCacheKeyForUserId(string $diskName, int $userId): string
+    {
+        return "r2-storage-occupied-bytes:{$diskName}:{$userId}";
     }
 
     private function pendingBytesCacheKey(User $user): string

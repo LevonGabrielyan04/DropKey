@@ -122,3 +122,20 @@ it('invalidates the occupied-bytes cache when pending reservations expire', func
     // Expired reservation should clear the stale disk cache so the upload is visible.
     expect($tracker->occupiedBytes($user))->toBe(100);
 });
+
+it('forgets the occupied-bytes cache for a user id', function () {
+    config(['filesystems.upload.occupied_bytes_cache_seconds' => 60]);
+
+    $user = User::factory()->make(['id' => 1]);
+    $path = "uploads/{$user->id}/existing.bin";
+
+    Storage::disk('r2')->put($path, str_repeat('a', 40));
+
+    $tracker = app(UserUploadStorageTracker::class);
+    expect($tracker->occupiedBytes($user))->toBe(40);
+
+    Storage::disk('r2')->delete($path);
+    $tracker->forgetOccupiedBytes($user->id);
+
+    expect($tracker->occupiedBytes($user))->toBe(0);
+});

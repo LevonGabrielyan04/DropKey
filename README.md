@@ -139,7 +139,7 @@ npm run dev
 
 ### 6. Scheduled tasks
 
-Expired Sends and chat messages are removed by `sends:delete-expired` and `chat-messages:delete-expired`, both scheduled **every 30 minutes** in `bootstrap/app.php`.
+Expired Sends, chat messages, and uploaded files are removed by `system:cleanup-expired`, scheduled **every 30 minutes** in `bootstrap/app.php`.
 
 * **Local development:** keep the scheduler running in a separate terminal:
 ```bash
@@ -159,8 +159,7 @@ php artisan schedule:work
 You can also run the cleanup manually:
 
 ```bash
-php artisan sends:delete-expired
-php artisan chat-messages:delete-expired
+php artisan system:cleanup-expired
 
 ```
 

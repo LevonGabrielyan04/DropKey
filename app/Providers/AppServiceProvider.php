@@ -2,6 +2,9 @@
 
 namespace App\Providers;
 
+use App\Actions\DeleteExpiredChatMessagesAction;
+use App\Actions\DeleteExpiredSendsAction;
+use App\Actions\DeleteExpiredUploadedFilesAction;
 use App\Actions\Interfaces\PreparesSendPivotData;
 use App\Actions\PrepareSendPivotDataAction;
 use App\Gates\MarkChatMessageAsViewed;
@@ -73,6 +76,12 @@ class AppServiceProvider extends ServiceProvider
         });
 
         $this->app->bind(PreparesSendPivotData::class, PrepareSendPivotDataAction::class);
+
+        $this->app->tag([
+            DeleteExpiredSendsAction::class,
+            DeleteExpiredChatMessagesAction::class,
+            DeleteExpiredUploadedFilesAction::class,
+        ], 'expirable-cleanup');
     }
 
     /**
