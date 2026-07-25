@@ -6,11 +6,14 @@ namespace App\DTOs;
 
 readonly class FileDownloadLinkData
 {
+    public int $expiresInSeconds;
+
     public function __construct(
         public string $url,
         public string $path,
-        public int $expiresInSeconds,
-    ) {}
+    ) {
+        $this->expiresInSeconds = (int) config('filesystems.upload.url_expires_minutes') * 60;
+    }
 
     /**
      * @return array{url: string, path: string, expires_in: int}

@@ -44,10 +44,8 @@ class R2UploadService implements R2UploadServiceInterface
             $diskName,
             $path,
             $data,
-            $maxFileBytes,
             $maxStorageBytes,
             $expiresAt,
-            $expiresInMinutes,
         ): FileUploadLinkData {
             $this->ensureWithinUploadLimit($data->user, $data->size, $disk, $diskName, $maxStorageBytes);
 
@@ -68,8 +66,6 @@ class R2UploadService implements R2UploadServiceInterface
                 url: $upload['url'],
                 headers: $upload['headers'],
                 path: $path,
-                maxFileBytes: $maxFileBytes,
-                expiresInSeconds: $expiresInMinutes * 60,
             );
         });
     }

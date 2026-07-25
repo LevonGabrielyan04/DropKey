@@ -6,6 +6,10 @@ namespace App\DTOs;
 
 readonly class FileUploadLinkData
 {
+    public int $maxFileBytes;
+
+    public int $expiresInSeconds;
+
     /**
      * @param  array<string, list<string>>  $headers
      */
@@ -13,9 +17,10 @@ readonly class FileUploadLinkData
         public string $url,
         public array $headers,
         public string $path,
-        public int $maxFileBytes,
-        public int $expiresInSeconds,
-    ) {}
+    ) {
+        $this->maxFileBytes = (int) config('filesystems.upload.max_file_bytes');
+        $this->expiresInSeconds = (int) config('filesystems.upload.url_expires_minutes') * 60;
+    }
 
     /**
      * @return array{url: string, headers: array<string, list<string>>, path: string, max_file_bytes: int, expires_in: int}

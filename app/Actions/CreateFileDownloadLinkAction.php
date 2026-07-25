@@ -40,7 +40,6 @@ class CreateFileDownloadLinkAction
         return new FileDownloadLinkData(
             url: $disk->temporaryUrl($data->path, $expiresAt),
             path: $data->path,
-            expiresInSeconds: $expiresInMinutes * 60,
         );
     }
 
