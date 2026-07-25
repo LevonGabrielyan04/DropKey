@@ -18,8 +18,10 @@ use App\Repositories\Interfaces\SendRepositoryInterface;
 use App\Repositories\Interfaces\UserIdentityKeyRepositoryInterface;
 use App\Services\ChatMessageService;
 use App\Services\Interfaces\ChatMessageServiceInterface;
+use App\Services\Interfaces\R2UploadServiceInterface;
 use App\Services\Interfaces\SendReadServiceInterface;
 use App\Services\Interfaces\SendWriteServiceInterface;
+use App\Services\R2UploadService;
 use App\Services\SendReadService;
 use App\Services\SendWriteService;
 use Carbon\CarbonImmutable;
@@ -48,6 +50,7 @@ class AppServiceProvider extends ServiceProvider
         $this->app->bind(ConversationRepositoryInterface::class, ConversationRepository::class);
         $this->app->bind(UserIdentityKeyRepositoryInterface::class, UserIdentityKeyRepository::class);
         $this->app->bind(ChatMessageServiceInterface::class, ChatMessageService::class);
+        $this->app->bind(R2UploadServiceInterface::class, R2UploadService::class);
         $this->app->bind(SendRepositoryInterface::class, SendRepository::class);
         $this->app->bind(SendWriteServiceInterface::class, SendWriteService::class);
         $this->app->bind(SendReadServiceInterface::class, SendReadService::class);
@@ -95,6 +98,10 @@ class AppServiceProvider extends ServiceProvider
 
         RateLimiter::for('chat-identity', function (Request $request) {
             return Limit::perMinute(10)->by($request->user()->id);
+        });
+
+        RateLimiter::for('uploads', function (Request $request) {
+            return Limit::perMinute(20)->by($request->user()->id);
         });
 
         Gate::define('viewPulse', function (User $user) {

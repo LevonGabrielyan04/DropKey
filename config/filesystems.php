@@ -60,6 +60,38 @@ return [
             'report' => false,
         ],
 
+        'r2' => [
+            'driver' => 's3',
+            'key' => env('R2_ACCESS_KEY_ID', env('AWS_ACCESS_KEY_ID')),
+            'secret' => env('R2_SECRET_ACCESS_KEY', env('AWS_SECRET_ACCESS_KEY')),
+            'region' => env('R2_DEFAULT_REGION', env('AWS_DEFAULT_REGION', 'auto')),
+            'bucket' => env('R2_BUCKET', env('AWS_BUCKET')),
+            'url' => env('R2_URL', env('AWS_URL')),
+            'endpoint' => env('R2_ENDPOINT', env('AWS_ENDPOINT')),
+            'use_path_style_endpoint' => env('R2_USE_PATH_STYLE_ENDPOINT', env('AWS_USE_PATH_STYLE_ENDPOINT', false)),
+            'throw' => true,
+            'report' => false,
+        ],
+
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Direct Cloud Upload Limits
+    |--------------------------------------------------------------------------
+    |
+    | These limits govern temporary upload URL generation for Cloudflare R2.
+    | Individual uploads are capped at max_file_bytes, and new upload links are
+    | refused once occupied storage would exceed max_storage_bytes.
+    |
+    */
+
+    'upload' => [
+        'disk' => env('CLOUD_UPLOAD_DISK', 'r2'),
+        'max_file_bytes' => 10 * 1024 * 1024,
+        'max_storage_bytes' => 10 * 1024 * 1024 * 1024,
+        'url_expires_minutes' => (int) env('CLOUD_UPLOAD_URL_EXPIRES_MINUTES', 5),
+        'occupied_bytes_cache_seconds' => (int) env('CLOUD_UPLOAD_OCCUPIED_CACHE_SECONDS', 60),
     ],
 
     /*

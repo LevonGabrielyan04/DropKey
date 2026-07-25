@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\ChatController;
 use App\Http\Controllers\ConversationController;
+use App\Http\Controllers\FileUploadController;
 use App\Http\Controllers\IdentityKeyController;
 use App\Http\Controllers\MarkChatMessageAsViewedController;
 use App\Http\Controllers\MessageController;
@@ -55,6 +56,10 @@ Route::middleware(['throttle:60,1', 'verified'])->group(function () {
         Route::delete('/push-subscriptions', [PushSubscriptionController::class, 'destroy'])
             ->middleware('throttle:chat-write')
             ->name('api.push-subscriptions.destroy');
+
+        Route::post('/uploads', [FileUploadController::class, 'store'])
+            ->middleware('throttle:uploads')
+            ->name('api.uploads.store');
     });
 });
 
