@@ -36,7 +36,7 @@ class R2UploadService implements R2UploadServiceInterface
         $path = $this->generateObjectPath($data->user, $data->filename);
         $expiresAt = now()->plus(minutes: $expiresInMinutes);
 
-        return Cache::lock('r2-upload-capacity', 10)->block(5, function () use (
+        return Cache::lock($this->capacityLockKey($data->user), 10)->block(5, function () use (
             $disk,
             $diskName,
             $path,
@@ -46,15 +46,7 @@ class R2UploadService implements R2UploadServiceInterface
             $expiresAt,
             $expiresInMinutes,
         ): FileUploadLinkData {
-            $occupiedBytes = $this->occupiedBytes($disk, $diskName);
-
-            if (($occupiedBytes + $data->size) > $maxStorageBytes) {
-                throw new CloudStorageCapacityExceededException(
-                    $occupiedBytes,
-                    $maxStorageBytes,
-                    $data->size,
-                );
-            }
+            $this->ensureWithinUploadLimit($data->user, $data->size, $disk, $diskName, $maxStorageBytes);
 
             /**
              * R2 supports presigned PUT only (not POST policies), so the signed
@@ -77,6 +69,26 @@ class R2UploadService implements R2UploadServiceInterface
         });
     }
 
+    public function ensureWithinUploadLimit(User $user, int $requestedBytes = 0, ?Filesystem $disk = null, ?string $diskName = null, ?int $maxStorageBytes = null): void
+    {
+        $diskName ??= (string) config('filesystems.upload.disk');
+        $disk ??= Storage::disk($diskName);
+        $maxStorageBytes ??= (int) config('filesystems.upload.max_storage_bytes');
+        $occupiedBytes = $this->occupiedBytes($user, $disk, $diskName);
+
+        $exceedsLimit = $requestedBytes <= 0
+            ? $occupiedBytes >= $maxStorageBytes
+            : ($occupiedBytes + $requestedBytes) > $maxStorageBytes;
+
+        if ($exceedsLimit) {
+            throw new CloudStorageCapacityExceededException(
+                $occupiedBytes,
+                $maxStorageBytes,
+                $requestedBytes,
+            );
+        }
+    }
+
     private function generateObjectPath(User $user, string $filename): string
     {
         $extension = pathinfo($filename, PATHINFO_EXTENSION);
@@ -85,33 +97,34 @@ class R2UploadService implements R2UploadServiceInterface
             : 'bin';
 
         return sprintf(
-            'uploads/%d/%s.%s',
-            $user->id,
+            '%s/%s.%s',
+            $this->userPrefix($user),
             (string) Str::ulid(),
             $safeExtension,
         );
     }
 
-    private function occupiedBytes(Filesystem $disk, string $diskName): int
+    private function occupiedBytes(User $user, Filesystem $disk, string $diskName): int
     {
         $ttlSeconds = (int) config('filesystems.upload.occupied_bytes_cache_seconds');
 
         if ($ttlSeconds <= 0) {
-            return $this->calculateOccupiedBytes($disk);
+            return $this->calculateOccupiedBytes($user, $disk);
         }
 
         return (int) Cache::remember(
-            "r2-storage-occupied-bytes:{$diskName}",
+            $this->occupiedBytesCacheKey($diskName, $user),
             $ttlSeconds,
-            fn (): int => $this->calculateOccupiedBytes($disk),
+            fn (): int => $this->calculateOccupiedBytes($user, $disk),
         );
     }
 
-    private function calculateOccupiedBytes(Filesystem $disk): int
+    private function calculateOccupiedBytes(User $user, Filesystem $disk): int
     {
         $total = 0;
+        $prefix = $this->userPrefix($user);
 
-        foreach ($disk->getDriver()->listContents('', true) as $attributes) {
+        foreach ($disk->getDriver()->listContents($prefix, true) as $attributes) {
             if (! $attributes instanceof StorageAttributes || ! $attributes->isFile()) {
                 continue;
             }
@@ -121,5 +134,20 @@ class R2UploadService implements R2UploadServiceInterface
         }
 
         return $total;
+    }
+
+    private function userPrefix(User $user): string
+    {
+        return sprintf('uploads/%d', $user->id);
+    }
+
+    private function capacityLockKey(User $user): string
+    {
+        return "r2-upload-capacity:{$user->id}";
+    }
+
+    private function occupiedBytesCacheKey(string $diskName, User $user): string
+    {
+        return "r2-storage-occupied-bytes:{$diskName}:{$user->id}";
     }
 }

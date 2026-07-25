@@ -58,7 +58,7 @@ Route::middleware(['throttle:60,1', 'verified'])->group(function () {
             ->name('api.push-subscriptions.destroy');
 
         Route::post('/uploads', [FileUploadController::class, 'store'])
-            ->middleware('throttle:uploads')
+            ->middleware(['throttle:uploads', 'upload-limit'])
             ->name('api.uploads.store');
     });
 });

@@ -65,10 +65,12 @@ it('validates the maximum upload size on the request', function () {
         ->assertJsonValidationErrors(['size']);
 });
 
-it('returns insufficient storage when the bucket is at capacity', function () {
+it('returns insufficient storage when the user is at capacity', function () {
     config(['filesystems.upload.max_storage_bytes' => 50]);
 
-    Storage::disk('r2')->put('full.bin', str_repeat('b', 50));
+    $user = User::factory()->create();
+
+    Storage::disk('r2')->put("uploads/{$user->id}/full.bin", str_repeat('b', 50));
     Cache::flush();
 
     Storage::disk('r2')->buildTemporaryUploadUrlsUsing(function () {
@@ -78,8 +80,6 @@ it('returns insufficient storage when the bucket is at capacity', function () {
         ];
     });
 
-    $user = User::factory()->create();
-
     $this->actingAs($user)
         ->postJson(route('api.uploads.store'), [
             'filename' => 'overflow.bin',
@@ -88,6 +88,31 @@ it('returns insufficient storage when the bucket is at capacity', function () {
         ])
         ->assertStatus(507)
         ->assertJsonPath('message', 'Cloud storage capacity limit exceeded.');
+});
+
+it('does not count another users uploads toward the storage limit', function () {
+    config(['filesystems.upload.max_storage_bytes' => 50]);
+
+    $user = User::factory()->create();
+    $other = User::factory()->create();
+
+    Storage::disk('r2')->put("uploads/{$other->id}/full.bin", str_repeat('b', 50));
+    Cache::flush();
+
+    Storage::disk('r2')->buildTemporaryUploadUrlsUsing(function () {
+        return [
+            'url' => 'https://r2.example/presigned-put',
+            'headers' => [],
+        ];
+    });
+
+    $this->actingAs($user)
+        ->postJson(route('api.uploads.store'), [
+            'filename' => 'notes.txt',
+            'content_type' => 'text/plain',
+            'size' => 20,
+        ])
+        ->assertCreated();
 });
 
 it('requires authentication to request an upload link', function () {

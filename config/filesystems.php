@@ -82,14 +82,14 @@ return [
     |
     | These limits govern temporary upload URL generation for Cloudflare R2.
     | Individual uploads are capped at max_file_bytes, and new upload links are
-    | refused once occupied storage would exceed max_storage_bytes.
+    | refused once a user's occupied storage would exceed max_storage_bytes.
     |
     */
 
     'upload' => [
         'disk' => env('CLOUD_UPLOAD_DISK', 'r2'),
         'max_file_bytes' => 10 * 1024 * 1024,
-        'max_storage_bytes' => 10 * 1024 * 1024 * 1024,
+        'max_storage_bytes' => (int) env('CLOUD_UPLOAD_MAX_STORAGE_BYTES', 300 * 1024 * 1024),
         'url_expires_minutes' => (int) env('CLOUD_UPLOAD_URL_EXPIRES_MINUTES', 5),
         'occupied_bytes_cache_seconds' => (int) env('CLOUD_UPLOAD_OCCUPIED_CACHE_SECONDS', 60),
     ],

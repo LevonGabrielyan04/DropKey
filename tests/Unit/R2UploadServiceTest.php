@@ -76,14 +76,15 @@ it('rejects files larger than the configured maximum before creating a link', fu
     ));
 })->throws(ValidationException::class);
 
-it('refuses to create a link when cloud storage would exceed 10gb', function () {
+it('refuses to create a link when the user would exceed their storage quota', function () {
     config(['filesystems.upload.max_storage_bytes' => 100]);
 
-    Storage::disk('r2')->put('existing.bin', str_repeat('a', 90));
+    $user = User::factory()->make(['id' => 1]);
+
+    Storage::disk('r2')->put("uploads/{$user->id}/existing.bin", str_repeat('a', 90));
 
     Cache::flush();
 
-    $user = User::factory()->make(['id' => 1]);
     $service = app(R2UploadService::class);
 
     $service->createUploadLink(new CreateFileUploadLinkData(
@@ -92,4 +93,18 @@ it('refuses to create a link when cloud storage would exceed 10gb', function () 
         contentType: 'application/octet-stream',
         size: 20,
     ));
+})->throws(CloudStorageCapacityExceededException::class);
+
+it('refuses uploads when the user has already exceeded their storage quota', function () {
+    config(['filesystems.upload.max_storage_bytes' => 100]);
+
+    $user = User::factory()->make(['id' => 1]);
+
+    Storage::disk('r2')->put("uploads/{$user->id}/existing.bin", str_repeat('a', 101));
+
+    Cache::flush();
+
+    $service = app(R2UploadService::class);
+
+    $service->ensureWithinUploadLimit($user);
 })->throws(CloudStorageCapacityExceededException::class);
