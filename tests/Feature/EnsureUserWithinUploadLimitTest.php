@@ -28,7 +28,7 @@ it('blocks upload link requests when the user has already exceeded their quota',
     $this->actingAs($user)
         ->postJson(route('api.uploads.store'), [
             'filename' => 'notes.txt',
-            'content_type' => 'text/plain',
+            'content_type' => 'application/octet-stream',
             'size' => 1,
         ])
         ->assertStatus(507)
@@ -53,7 +53,7 @@ it('allows upload link requests when the user is under their quota', function ()
     $this->actingAs($user)
         ->postJson(route('api.uploads.store'), [
             'filename' => 'notes.txt',
-            'content_type' => 'text/plain',
+            'content_type' => 'application/octet-stream',
             'size' => 10,
         ])
         ->assertCreated();

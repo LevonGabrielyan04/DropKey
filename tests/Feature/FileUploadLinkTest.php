@@ -35,13 +35,14 @@ it('creates an r2 upload link for authenticated users', function () {
     $this->actingAs($user)
         ->postJson(route('api.uploads.store'), [
             'filename' => 'notes.txt',
-            'content_type' => 'text/plain',
+            'content_type' => 'application/octet-stream',
             'size' => 2048,
         ])
         ->assertCreated()
         ->assertJsonPath('url', 'https://r2.example/presigned-put')
         ->assertJsonPath('max_file_bytes', 10 * 1024 * 1024)
         ->assertJsonPath('expires_in', 300)
+        ->assertJsonPath('headers.Content-Type.0', 'application/octet-stream')
         ->assertJsonPath('headers.Content-Length.0', '2048')
         ->assertJsonStructure([
             'url',
@@ -51,6 +52,25 @@ it('creates an r2 upload link for authenticated users', function () {
             'expires_in',
         ]);
 });
+
+it('rejects content types outside the encrypted upload allowlist', function (string $contentType) {
+    $user = User::factory()->create();
+
+    $this->actingAs($user)
+        ->postJson(route('api.uploads.store'), [
+            'filename' => 'payload.bin',
+            'content_type' => $contentType,
+            'size' => 100,
+        ])
+        ->assertUnprocessable()
+        ->assertJsonValidationErrors(['content_type']);
+})->with([
+    'text/plain',
+    'text/html',
+    'application/javascript',
+    'image/svg+xml',
+    'application/pdf',
+]);
 
 it('validates the maximum upload size on the request', function () {
     $user = User::factory()->create();
@@ -109,7 +129,7 @@ it('does not count another users uploads toward the storage limit', function () 
     $this->actingAs($user)
         ->postJson(route('api.uploads.store'), [
             'filename' => 'notes.txt',
-            'content_type' => 'text/plain',
+            'content_type' => 'application/octet-stream',
             'size' => 20,
         ])
         ->assertCreated();
@@ -118,7 +138,7 @@ it('does not count another users uploads toward the storage limit', function () 
 it('requires authentication to request an upload link', function () {
     $this->postJson(route('api.uploads.store'), [
         'filename' => 'notes.txt',
-        'content_type' => 'text/plain',
+        'content_type' => 'application/octet-stream',
         'size' => 100,
     ])->assertUnauthorized();
 });
