@@ -20,7 +20,6 @@ class IdentityKeyController extends Controller
         $identityKey = $this->identityKeys->updateOrCreateForUser(
             $request->user()->id,
             $validated['public_key_jwk'],
-            $validated['fingerprint'],
         );
 
         return response()->json([

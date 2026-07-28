@@ -3,6 +3,7 @@
 use App\Models\Conversation;
 use App\Models\User;
 use App\Repositories\Interfaces\ChatMessageRepositoryInterface;
+use App\Support\Cryptography\PublicKeyJwkFingerprint;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
@@ -109,17 +110,27 @@ function createConversation(User $first, User $second): Conversation
 }
 
 /**
+ * @param  array<string, mixed>  $publicKeyJwk
+ */
+function publicKeyJwkFingerprint(array $publicKeyJwk): string
+{
+    return PublicKeyJwkFingerprint::fromPublicKeyJwk($publicKeyJwk);
+}
+
+/**
  * @return array<string, mixed>
  */
 function validPublicKeyPayload(): array
 {
+    $publicKeyJwk = [
+        'kty' => 'EC',
+        'crv' => 'P-256',
+        'x' => 'test-public-x',
+        'y' => 'test-public-y',
+    ];
+
     return [
-        'public_key_jwk' => [
-            'kty' => 'EC',
-            'crv' => 'P-256',
-            'x' => 'test-public-x',
-            'y' => 'test-public-y',
-        ],
-        'fingerprint' => str_repeat('a', 64),
+        'public_key_jwk' => $publicKeyJwk,
+        'fingerprint' => publicKeyJwkFingerprint($publicKeyJwk),
     ];
 }

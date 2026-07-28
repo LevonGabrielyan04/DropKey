@@ -27,13 +27,7 @@ it('relates users to identity keys and chat messages', function () {
 
     UserIdentityKey::query()->create([
         'user_id' => $alice->id,
-        'public_key_jwk' => [
-            'kty' => 'EC',
-            'crv' => 'P-256',
-            'x' => 'test-x',
-            'y' => 'test-y',
-        ],
-        'fingerprint' => str_repeat('a', 64),
+        ...validPublicKeyPayload(),
     ]);
 
     ChatMessage::query()->create([

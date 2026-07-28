@@ -5,9 +5,10 @@ use App\Models\UserIdentityKey;
 
 it('registers a user public key', function () {
     $user = User::factory()->create();
+    $payload = validPublicKeyPayload();
 
     $response = $this->actingAs($user)
-        ->postJson(route('api.identity.public-key.store'), validPublicKeyPayload())
+        ->postJson(route('api.identity.public-key.store'), $payload)
         ->assertSuccessful()
         ->assertJson(['status' => 'ok']);
 
@@ -15,7 +16,7 @@ it('registers a user public key', function () {
 
     expect($identityKey)->not->toBeNull()
         ->and($identityKey->public_key_jwk['x'])->toBe('test-public-x')
-        ->and($identityKey->fingerprint)->toBe(str_repeat('a', 64))
+        ->and($identityKey->fingerprint)->toBe($payload['fingerprint'])
         ->and($identityKey->browser_db_id)->not->toBeEmpty();
 
     $response->assertJsonPath('browser_db_id', $identityKey->browser_db_id);
@@ -33,16 +34,20 @@ it('updates an existing public key registration', function () {
         ->firstOrFail()
         ->browser_db_id;
 
+    $rotatedJwk = [
+        'kty' => 'EC',
+        'crv' => 'P-256',
+        'x' => 'rotated-x',
+        'y' => 'rotated-y',
+    ];
+
+    $rotatedPayload = [
+        'public_key_jwk' => $rotatedJwk,
+        'fingerprint' => publicKeyJwkFingerprint($rotatedJwk),
+    ];
+
     $this->actingAs($user)
-        ->postJson(route('api.identity.public-key.store'), [
-            'public_key_jwk' => [
-                'kty' => 'EC',
-                'crv' => 'P-256',
-                'x' => 'rotated-x',
-                'y' => 'rotated-y',
-            ],
-            'fingerprint' => str_repeat('b', 64),
-        ])
+        ->postJson(route('api.identity.public-key.store'), $rotatedPayload)
         ->assertSuccessful()
         ->assertJsonPath('browser_db_id', $originalBrowserDbId);
 
@@ -50,25 +55,25 @@ it('updates an existing public key registration', function () {
 
     expect($identityKey)->not->toBeNull()
         ->and($identityKey->public_key_jwk['x'])->toBe('rotated-x')
-        ->and($identityKey->fingerprint)->toBe(str_repeat('b', 64))
+        ->and($identityKey->fingerprint)->toBe($rotatedPayload['fingerprint'])
         ->and($identityKey->browser_db_id)->toBe($originalBrowserDbId);
 });
 
 it('exposes a partner public key to authenticated users', function () {
     $owner = User::factory()->create();
     $partner = User::factory()->create();
+    $payload = validPublicKeyPayload();
 
     UserIdentityKey::query()->create([
         'user_id' => $owner->id,
-        'public_key_jwk' => validPublicKeyPayload()['public_key_jwk'],
-        'fingerprint' => validPublicKeyPayload()['fingerprint'],
+        ...$payload,
     ]);
 
     $this->actingAs($partner)
         ->getJson(route('api.users.public-key.show', $owner))
         ->assertSuccessful()
         ->assertJsonPath('public_id', $owner->public_key)
-        ->assertJsonPath('fingerprint', str_repeat('a', 64));
+        ->assertJsonPath('fingerprint', $payload['fingerprint']);
 });
 
 it('returns not found when a partner has not registered a public key', function () {
@@ -97,8 +102,23 @@ it('rejects invalid public key payloads', function () {
         ->assertJsonValidationErrors(['public_key_jwk.kty', 'fingerprint']);
 });
 
+it('rejects a fingerprint that does not match the public key', function () {
+    $user = User::factory()->create();
+
+    $this->actingAs($user)
+        ->postJson(route('api.identity.public-key.store'), [
+            'public_key_jwk' => validPublicKeyPayload()['public_key_jwk'],
+            'fingerprint' => str_repeat('b', 64),
+        ])
+        ->assertUnprocessable()
+        ->assertJsonValidationErrors('fingerprint');
+
+    expect(UserIdentityKey::query()->where('user_id', $user->id)->exists())->toBeFalse();
+});
+
 it('reports whether the current user has registered a key', function () {
     $user = User::factory()->create();
+    $payload = validPublicKeyPayload();
 
     $this->actingAs($user)
         ->getJson(route('api.identity.public-key.mine'))
@@ -107,7 +127,7 @@ it('reports whether the current user has registered a key', function () {
 
     UserIdentityKey::query()->create([
         'user_id' => $user->id,
-        ...validPublicKeyPayload(),
+        ...$payload,
     ]);
 
     $identityKey = UserIdentityKey::query()->where('user_id', $user->id)->firstOrFail();
@@ -116,23 +136,21 @@ it('reports whether the current user has registered a key', function () {
         ->getJson(route('api.identity.public-key.mine'))
         ->assertSuccessful()
         ->assertJsonPath('registered', true)
-        ->assertJsonPath('fingerprint', str_repeat('a', 64))
+        ->assertJsonPath('fingerprint', $payload['fingerprint'])
         ->assertJsonPath('browser_db_id', $identityKey->browser_db_id);
 });
 
 it('rejects private key material in the public key payload', function () {
     $user = User::factory()->create();
+    $payload = validPublicKeyPayload();
 
     $this->actingAs($user)
         ->postJson(route('api.identity.public-key.store'), [
             'public_key_jwk' => [
-                'kty' => 'EC',
-                'crv' => 'P-256',
-                'x' => 'test-public-x',
-                'y' => 'test-public-y',
+                ...$payload['public_key_jwk'],
                 'd' => 'private-key-material-must-not-be-stored',
             ],
-            'fingerprint' => str_repeat('a', 64),
+            'fingerprint' => $payload['fingerprint'],
         ])
         ->assertUnprocessable()
         ->assertJsonValidationErrors('public_key_jwk.d');
@@ -155,14 +173,12 @@ it('requires authentication for identity key endpoints', function () {
 
 it('never persists private key fields from rejected payloads', function () {
     $user = User::factory()->create();
+    $payload = validPublicKeyPayload();
 
     $this->actingAs($user)
         ->postJson(route('api.identity.public-key.store'), [
             'public_key_jwk' => [
-                'kty' => 'EC',
-                'crv' => 'P-256',
-                'x' => 'test-public-x',
-                'y' => 'test-public-y',
+                ...$payload['public_key_jwk'],
                 'd' => 'must-not-persist',
             ],
             'fingerprint' => str_repeat('c', 64),

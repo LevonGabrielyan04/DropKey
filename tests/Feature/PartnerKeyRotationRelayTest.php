@@ -17,22 +17,26 @@ it('exposes a rotated partner key and relays post-rotation messages for live pol
         ->postJson(route('api.identity.public-key.store'), validPublicKeyPayload())
         ->assertSuccessful();
 
+    $bobOriginalJwk = [
+        'kty' => 'EC',
+        'crv' => 'P-256',
+        'x' => 'bob-original-x',
+        'y' => 'bob-original-y',
+    ];
+
+    $bobOriginalPayload = [
+        'public_key_jwk' => $bobOriginalJwk,
+        'fingerprint' => publicKeyJwkFingerprint($bobOriginalJwk),
+    ];
+
     $this->actingAs($bob)
-        ->postJson(route('api.identity.public-key.store'), [
-            'public_key_jwk' => [
-                'kty' => 'EC',
-                'crv' => 'P-256',
-                'x' => 'bob-original-x',
-                'y' => 'bob-original-y',
-            ],
-            'fingerprint' => str_repeat('b', 64),
-        ])
+        ->postJson(route('api.identity.public-key.store'), $bobOriginalPayload)
         ->assertSuccessful();
 
     $this->actingAs($alice)
         ->getJson(route('api.users.public-key.show', $bob))
         ->assertSuccessful()
-        ->assertJsonPath('fingerprint', str_repeat('b', 64))
+        ->assertJsonPath('fingerprint', $bobOriginalPayload['fingerprint'])
         ->assertJsonPath('public_key_jwk.x', 'bob-original-x');
 
     $this->actingAs($alice)
@@ -57,16 +61,20 @@ it('exposes a rotated partner key and relays post-rotation messages for live pol
 
     $lastSeenPublicId = $aliceHistory[array_key_last($aliceHistory)]['public_id'];
 
+    $bobRotatedJwk = [
+        'kty' => 'EC',
+        'crv' => 'P-256',
+        'x' => 'bob-rotated-x',
+        'y' => 'bob-rotated-y',
+    ];
+
+    $bobRotatedPayload = [
+        'public_key_jwk' => $bobRotatedJwk,
+        'fingerprint' => publicKeyJwkFingerprint($bobRotatedJwk),
+    ];
+
     $this->actingAs($bob)
-        ->postJson(route('api.identity.public-key.store'), [
-            'public_key_jwk' => [
-                'kty' => 'EC',
-                'crv' => 'P-256',
-                'x' => 'bob-rotated-x',
-                'y' => 'bob-rotated-y',
-            ],
-            'fingerprint' => str_repeat('c', 64),
-        ])
+        ->postJson(route('api.identity.public-key.store'), $bobRotatedPayload)
         ->assertSuccessful();
 
     expect(UserIdentityKey::query()->where('user_id', $bob->id)->count())->toBe(1);
@@ -74,7 +82,7 @@ it('exposes a rotated partner key and relays post-rotation messages for live pol
     $this->actingAs($alice)
         ->getJson(route('api.users.public-key.show', $bob))
         ->assertSuccessful()
-        ->assertJsonPath('fingerprint', str_repeat('c', 64))
+        ->assertJsonPath('fingerprint', $bobRotatedPayload['fingerprint'])
         ->assertJsonPath('public_key_jwk.x', 'bob-rotated-x')
         ->assertJsonMissingPath('public_key_jwk.d');
 

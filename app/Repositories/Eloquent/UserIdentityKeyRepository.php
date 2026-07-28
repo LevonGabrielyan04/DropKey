@@ -6,6 +6,7 @@ namespace App\Repositories\Eloquent;
 
 use App\Models\UserIdentityKey;
 use App\Repositories\Interfaces\UserIdentityKeyRepositoryInterface;
+use App\Support\Cryptography\PublicKeyJwkFingerprint;
 
 class UserIdentityKeyRepository implements UserIdentityKeyRepositoryInterface
 {
@@ -21,13 +22,13 @@ class UserIdentityKeyRepository implements UserIdentityKeyRepositoryInterface
     /**
      * {@inheritDoc}
      */
-    public function updateOrCreateForUser(int $userId, array $publicKeyJwk, string $fingerprint): UserIdentityKey
+    public function updateOrCreateForUser(int $userId, array $publicKeyJwk): UserIdentityKey
     {
         return $this->model->query()->updateOrCreate(
             ['user_id' => $userId],
             [
                 'public_key_jwk' => $publicKeyJwk,
-                'fingerprint' => $fingerprint,
+                'fingerprint' => PublicKeyJwkFingerprint::fromPublicKeyJwk($publicKeyJwk),
             ],
         );
     }

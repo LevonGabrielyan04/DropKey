@@ -13,5 +13,5 @@ interface UserIdentityKeyRepositoryInterface
     /**
      * @param  array<string, mixed>  $publicKeyJwk
      */
-    public function updateOrCreateForUser(int $userId, array $publicKeyJwk, string $fingerprint): UserIdentityKey;
+    public function updateOrCreateForUser(int $userId, array $publicKeyJwk): UserIdentityKey;
 }

@@ -11,11 +11,11 @@ uses(TestCase::class, RefreshDatabase::class);
 
 it('assigns a unique browser database id when creating an identity key', function () {
     $user = User::factory()->create();
+    $payload = validPublicKeyPayload();
 
     $identityKey = UserIdentityKey::query()->create([
         'user_id' => $user->id,
-        'public_key_jwk' => validPublicKeyPayload()['public_key_jwk'],
-        'fingerprint' => validPublicKeyPayload()['fingerprint'],
+        ...$payload,
     ]);
 
     expect($identityKey->browser_db_id)
@@ -25,17 +25,25 @@ it('assigns a unique browser database id when creating an identity key', functio
 
 it('preserves an existing browser database id on update', function () {
     $user = User::factory()->create();
+    $payload = validPublicKeyPayload();
 
     $identityKey = UserIdentityKey::query()->create([
         'user_id' => $user->id,
-        'public_key_jwk' => validPublicKeyPayload()['public_key_jwk'],
-        'fingerprint' => validPublicKeyPayload()['fingerprint'],
+        ...$payload,
     ]);
 
     $browserDbId = $identityKey->browser_db_id;
 
+    $rotatedJwk = [
+        'kty' => 'EC',
+        'crv' => 'P-256',
+        'x' => 'rotated-x',
+        'y' => 'rotated-y',
+    ];
+
     $identityKey->update([
-        'fingerprint' => str_repeat('b', 64),
+        'public_key_jwk' => $rotatedJwk,
+        'fingerprint' => publicKeyJwkFingerprint($rotatedJwk),
     ]);
 
     expect($identityKey->fresh()->browser_db_id)->toBe($browserDbId);
@@ -44,17 +52,24 @@ it('preserves an existing browser database id on update', function () {
 it('enforces unique browser database ids', function () {
     $firstUser = User::factory()->create();
     $secondUser = User::factory()->create();
+    $payload = validPublicKeyPayload();
 
     $firstIdentityKey = UserIdentityKey::query()->create([
         'user_id' => $firstUser->id,
-        'public_key_jwk' => validPublicKeyPayload()['public_key_jwk'],
-        'fingerprint' => validPublicKeyPayload()['fingerprint'],
+        ...$payload,
     ]);
+
+    $secondJwk = [
+        'kty' => 'EC',
+        'crv' => 'P-256',
+        'x' => 'second-user-x',
+        'y' => 'second-user-y',
+    ];
 
     expect(fn () => UserIdentityKey::query()->create([
         'user_id' => $secondUser->id,
         'browser_db_id' => $firstIdentityKey->browser_db_id,
-        'public_key_jwk' => validPublicKeyPayload()['public_key_jwk'],
-        'fingerprint' => str_repeat('b', 64),
+        'public_key_jwk' => $secondJwk,
+        'fingerprint' => publicKeyJwkFingerprint($secondJwk),
     ]))->toThrow(UniqueConstraintViolationException::class);
 });

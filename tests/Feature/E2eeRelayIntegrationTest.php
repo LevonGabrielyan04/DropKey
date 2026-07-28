@@ -15,15 +15,17 @@ it('relays bidirectional encrypted payloads without modifying ciphertext', funct
         ...validPublicKeyPayload(),
     ]);
 
+    $bobJwk = [
+        'kty' => 'EC',
+        'crv' => 'P-256',
+        'x' => 'bob-public-x',
+        'y' => 'bob-public-y',
+    ];
+
     UserIdentityKey::query()->create([
         'user_id' => $bob->id,
-        'public_key_jwk' => [
-            'kty' => 'EC',
-            'crv' => 'P-256',
-            'x' => 'bob-public-x',
-            'y' => 'bob-public-y',
-        ],
-        'fingerprint' => str_repeat('b', 64),
+        'public_key_jwk' => $bobJwk,
+        'fingerprint' => publicKeyJwkFingerprint($bobJwk),
     ]);
 
     $alicePayload = fakeChatPayload();
@@ -101,15 +103,17 @@ it('supports the full register-key then relay workflow over HTTP', function () {
         ->postJson(route('api.identity.public-key.store'), validPublicKeyPayload())
         ->assertSuccessful();
 
+    $bobJwk = [
+        'kty' => 'EC',
+        'crv' => 'P-256',
+        'x' => 'bob-public-x',
+        'y' => 'bob-public-y',
+    ];
+
     $this->actingAs($bob)
         ->postJson(route('api.identity.public-key.store'), [
-            'public_key_jwk' => [
-                'kty' => 'EC',
-                'crv' => 'P-256',
-                'x' => 'bob-public-x',
-                'y' => 'bob-public-y',
-            ],
-            'fingerprint' => str_repeat('b', 64),
+            'public_key_jwk' => $bobJwk,
+            'fingerprint' => publicKeyJwkFingerprint($bobJwk),
         ])
         ->assertSuccessful();
 

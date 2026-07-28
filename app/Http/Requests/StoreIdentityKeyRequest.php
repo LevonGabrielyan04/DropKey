@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Requests;
 
+use App\Rules\MatchesPublicKeyJwkFingerprint;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 
@@ -55,6 +56,7 @@ class StoreIdentityKeyRequest extends FormRequest
                 'string',
                 'size:64',
                 'regex:/^[a-f0-9]{64}$/',
+                new MatchesPublicKeyJwkFingerprint,
             ],
         ];
     }
