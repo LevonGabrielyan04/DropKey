@@ -38,6 +38,51 @@
             </flux:callout>
         </div>
 
+        <div
+            class="space-y-3 border-2 border-zinc-950 p-4 dark:border-zinc-100"
+            x-show="passwordRequired"
+            x-cloak
+            data-test="identity-key-overwrite-password-section"
+        >
+            <flux:text class="!font-mono !text-sm">
+                {{ __('Confirm your account password before replacing your encryption key.') }}
+            </flux:text>
+
+            <div class="relative" x-data="passwordVisibility">
+                <label for="identity-key-overwrite-password" class="text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-500">
+                    {{ __('Password') }}
+                </label>
+
+                <input
+                    :type="showPassword ? 'text' : 'password'"
+                    id="identity-key-overwrite-password"
+                    x-model="password"
+                    autocomplete="current-password"
+                    placeholder="{{ __('Password') }}"
+                    class="mt-2 block w-full !rounded-none border-2 border-zinc-950 bg-white px-3 py-2.5 pr-12 font-mono text-sm text-zinc-950 focus:border-emerald-500 focus:outline-hidden focus:ring-2 focus:ring-emerald-500 dark:border-zinc-100 dark:bg-zinc-900 dark:text-zinc-50"
+                    data-test="identity-key-overwrite-password"
+                />
+
+                <button
+                    type="button"
+                    @click="toggle"
+                    class="absolute bottom-2.5 right-3 border-2 border-transparent p-1 text-zinc-600 transition-colors hover:border-zinc-950 hover:text-zinc-950 dark:text-zinc-400 dark:hover:border-zinc-100 dark:hover:text-zinc-100"
+                    :aria-label="showPassword ? '{{ __('Hide password') }}' : '{{ __('Show password') }}'"
+                >
+                    <flux:icon.eye x-show="!showPassword" x-cloak variant="outline" class="size-4" />
+                    <flux:icon.eye-slash x-show="showPassword" x-cloak variant="outline" class="size-4" />
+                </button>
+            </div>
+
+            <span
+                class="block text-sm text-red-600"
+                x-show="passwordError"
+                x-text="passwordError"
+                x-cloak
+                data-test="identity-key-overwrite-password-error"
+            ></span>
+        </div>
+
         <div class="flex justify-end gap-2">
             <flux:button
                 type="button"
@@ -54,9 +99,11 @@
                 variant="danger"
                 class="!rounded-none !border-2 !border-red-700 !font-bold !uppercase !tracking-[0.16em]"
                 data-test="identity-key-overwrite-confirm"
+                x-bind:disabled="confirming"
                 x-on:click="confirmIdentityKeyOverwrite()"
             >
-                {{ __('Replace key') }}
+                <span x-show="! confirming">{{ __('Replace key') }}</span>
+                <span x-show="confirming" x-cloak>{{ __('Verifying...') }}</span>
             </flux:button>
         </div>
     </div>

@@ -2,6 +2,7 @@
 
 use App\Http\Middleware\EnsureRouteUserIsNotSelf;
 use App\Http\Middleware\EnsureUserWithinUploadLimit;
+use App\Http\Middleware\RequirePasswordForIdentityKeyOverwrite;
 use App\Http\Middleware\VerifyTurnstile;
 use App\Support\Csp\AddCspHeaders;
 use App\Support\Csp\PrepareCspNonce;
@@ -22,6 +23,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->prepend(PrepareCspNonce::class);
         $middleware->append(AddCspHeaders::class);
         $middleware->alias([
+            'identity-key-overwrite-password' => RequirePasswordForIdentityKeyOverwrite::class,
             'not-self' => EnsureRouteUserIsNotSelf::class,
             'turnstile' => VerifyTurnstile::class,
             'upload-limit' => EnsureUserWithinUploadLimit::class,

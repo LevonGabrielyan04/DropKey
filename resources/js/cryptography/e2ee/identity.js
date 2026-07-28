@@ -1,7 +1,9 @@
 import { fingerprintFromPublicJwk } from './bufferUtils.js';
 import {
     ensureIdentityOverwriteAllowed,
+    IdentityKeyOverwriteCancelledError,
 } from './identityOverwrite.js';
+import { confirmIdentityKeyOverwrite } from './identityOverwriteConfirmation.js';
 import {
     loadIdentity,
     persistUnlockedIdentity,
@@ -9,6 +11,29 @@ import {
     resolveStoredIdentity,
     setSessionBrowserDbId,
 } from './identitySession.js';
+
+/**
+ * @param {string} registerUrl
+ * @param {string} csrfToken
+ * @param {JsonWebKey} publicJwk
+ * @param {string} fingerprint
+ * @returns {Promise<Response>}
+ */
+async function submitPublicKeyRegistration(registerUrl, csrfToken, publicJwk, fingerprint) {
+    return fetch(registerUrl, {
+        method: 'POST',
+        headers: {
+            Accept: 'application/json',
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': csrfToken,
+        },
+        credentials: 'same-origin',
+        body: JSON.stringify({
+            public_key_jwk: publicJwk,
+            fingerprint,
+        }),
+    });
+}
 
 /**
  * @returns {Promise<{ privateKey: CryptoKey, publicJwk: JsonWebKey, fingerprint: string }>}
@@ -123,19 +148,17 @@ export async function registerPublicKey(registerUrl, csrfToken, { mineUrl } = {}
         });
     }
 
-    const response = await fetch(registerUrl, {
-        method: 'POST',
-        headers: {
-            Accept: 'application/json',
-            'Content-Type': 'application/json',
-            'X-CSRF-TOKEN': csrfToken,
-        },
-        credentials: 'same-origin',
-        body: JSON.stringify({
-            public_key_jwk: publicJwk,
-            fingerprint,
-        }),
-    });
+    let response = await submitPublicKeyRegistration(registerUrl, csrfToken, publicJwk, fingerprint);
+
+    if (response.status === 423) {
+        const confirmed = await confirmIdentityKeyOverwrite();
+
+        if (! confirmed) {
+            throw new IdentityKeyOverwriteCancelledError();
+        }
+
+        response = await submitPublicKeyRegistration(registerUrl, csrfToken, publicJwk, fingerprint);
+    }
 
     if (! response.ok) {
         throw new Error('Failed to register public key.');

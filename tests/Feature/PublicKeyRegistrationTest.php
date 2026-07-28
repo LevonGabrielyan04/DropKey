@@ -2,6 +2,7 @@
 
 use App\Models\User;
 use App\Models\UserIdentityKey;
+use Illuminate\Support\Facades\Hash;
 
 it('registers a user public key', function () {
     $user = User::factory()->create();
@@ -47,6 +48,7 @@ it('updates an existing public key registration', function () {
     ];
 
     $this->actingAs($user)
+        ->withSession(withPasswordConfirmed())
         ->postJson(route('api.identity.public-key.store'), $rotatedPayload)
         ->assertSuccessful()
         ->assertJsonPath('browser_db_id', $originalBrowserDbId);
@@ -57,6 +59,104 @@ it('updates an existing public key registration', function () {
         ->and($identityKey->public_key_jwk['x'])->toBe('rotated-x')
         ->and($identityKey->fingerprint)->toBe($rotatedPayload['fingerprint'])
         ->and($identityKey->browser_db_id)->toBe($originalBrowserDbId);
+});
+
+it('requires recent password confirmation when overwriting an existing public key', function () {
+    $user = User::factory()->create();
+
+    $this->actingAs($user)
+        ->postJson(route('api.identity.public-key.store'), validPublicKeyPayload())
+        ->assertSuccessful();
+
+    $rotatedJwk = [
+        'kty' => 'EC',
+        'crv' => 'P-256',
+        'x' => 'rotated-x',
+        'y' => 'rotated-y',
+    ];
+
+    $rotatedPayload = [
+        'public_key_jwk' => $rotatedJwk,
+        'fingerprint' => publicKeyJwkFingerprint($rotatedJwk),
+    ];
+
+    $this->actingAs($user)
+        ->postJson(route('api.identity.public-key.store'), $rotatedPayload)
+        ->assertStatus(423)
+        ->assertJson([
+            'message' => 'Password confirmation required.',
+        ]);
+
+    expect(UserIdentityKey::query()->where('user_id', $user->id)->firstOrFail()->public_key_jwk['x'])
+        ->toBe('test-public-x');
+});
+
+it('allows overwriting an existing public key when password was recently confirmed', function () {
+    $user = User::factory()->create();
+
+    $this->actingAs($user)
+        ->postJson(route('api.identity.public-key.store'), validPublicKeyPayload())
+        ->assertSuccessful();
+
+    $rotatedJwk = [
+        'kty' => 'EC',
+        'crv' => 'P-256',
+        'x' => 'confirmed-rotated-x',
+        'y' => 'confirmed-rotated-y',
+    ];
+
+    $rotatedPayload = [
+        'public_key_jwk' => $rotatedJwk,
+        'fingerprint' => publicKeyJwkFingerprint($rotatedJwk),
+    ];
+
+    $this->actingAs($user)
+        ->withSession(withPasswordConfirmed())
+        ->postJson(route('api.identity.public-key.store'), $rotatedPayload)
+        ->assertSuccessful();
+
+    expect(UserIdentityKey::query()->where('user_id', $user->id)->firstOrFail()->public_key_jwk['x'])
+        ->toBe('confirmed-rotated-x');
+});
+
+it('rejects an identity key overwrite when password confirmation fails', function () {
+    $user = User::factory()->create([
+        'password' => Hash::make('correct-password'),
+    ]);
+
+    $this->actingAs($user)
+        ->postJson(route('api.identity.public-key.store'), validPublicKeyPayload())
+        ->assertSuccessful();
+
+    $rotatedJwk = [
+        'kty' => 'EC',
+        'crv' => 'P-256',
+        'x' => 'blocked-rotated-x',
+        'y' => 'blocked-rotated-y',
+    ];
+
+    $rotatedPayload = [
+        'public_key_jwk' => $rotatedJwk,
+        'fingerprint' => publicKeyJwkFingerprint($rotatedJwk),
+    ];
+
+    $this->actingAs($user)
+        ->from(route('password.confirm'))
+        ->post(route('password.confirm.store'), [
+            'password' => 'wrong-password',
+        ])
+        ->assertRedirect(route('password.confirm'))
+        ->assertSessionHasErrors('password');
+
+    $this->actingAs($user)
+        ->postJson(route('api.identity.public-key.store'), $rotatedPayload)
+        ->assertStatus(423)
+        ->assertJson([
+            'message' => 'Password confirmation required.',
+        ]);
+
+    expect(UserIdentityKey::query()->where('user_id', $user->id)->firstOrFail()->public_key_jwk['x'])
+        ->toBe('test-public-x');
 });
 
 it('exposes a partner public key to authenticated users', function () {

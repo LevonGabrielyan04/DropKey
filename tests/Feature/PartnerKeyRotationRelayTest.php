@@ -74,6 +74,7 @@ it('exposes a rotated partner key and relays post-rotation messages for live pol
     ];
 
     $this->actingAs($bob)
+        ->withSession(withPasswordConfirmed())
         ->postJson(route('api.identity.public-key.store'), $bobRotatedPayload)
         ->assertSuccessful();
 

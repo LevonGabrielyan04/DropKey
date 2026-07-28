@@ -32,11 +32,13 @@ it('throttles public key registration after ten per minute', function () {
 
     for ($i = 0; $i < 10; $i++) {
         $this->actingAs($user)
+            ->withSession(withPasswordConfirmed())
             ->postJson(route('api.identity.public-key.store'), validPublicKeyPayload())
             ->assertSuccessful();
     }
 
     $this->actingAs($user)
+        ->withSession(withPasswordConfirmed())
         ->postJson(route('api.identity.public-key.store'), validPublicKeyPayload())
         ->assertTooManyRequests();
 });

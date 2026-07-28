@@ -8,6 +8,8 @@
         data-browser-db-id="{{ auth()->user()->identityKey?->browser_db_id }}"
         data-identity-register-url="{{ route('api.identity.public-key.store') }}"
         data-identity-mine-url="{{ route('api.identity.public-key.mine') }}"
+        data-password-confirmation-status-url="{{ route('password.confirmation') }}"
+        data-password-confirm-url="{{ route('password.confirm.store') }}"
         data-csrf-token="{{ csrf_token() }}"
         x-data="identityKeyOverwriteModal()"
     >

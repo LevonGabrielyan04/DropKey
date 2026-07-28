@@ -120,6 +120,14 @@ function publicKeyJwkFingerprint(array $publicKeyJwk): string
 /**
  * @return array<string, mixed>
  */
+/**
+ * @return array<string, int>
+ */
+function withPasswordConfirmed(): array
+{
+    return ['auth.password_confirmed_at' => time()];
+}
+
 function validPublicKeyPayload(): array
 {
     $publicKeyJwk = [

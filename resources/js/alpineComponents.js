@@ -1,5 +1,9 @@
 import { formatLocalDatetime } from './formatLocalDatetime.js';
 import {
+    confirmAccountPassword,
+    isPasswordRecentlyConfirmed,
+} from './cryptography/e2ee/identityKeyPasswordConfirmation.js';
+import {
     settleIdentityKeyOverwriteConfirmation,
 } from './cryptography/e2ee/identityOverwriteConfirmation.js';
 
@@ -7,18 +11,88 @@ const IDENTITY_KEY_OVERWRITE_REQUEST = 'passshare:identity-key-overwrite-request
 
 document.addEventListener('alpine:init', () => {
     Alpine.data('identityKeyOverwriteModal', () => ({
+        passwordRequired: false,
+        password: '',
+        passwordError: '',
+        confirming: false,
+
         init() {
-            window.addEventListener(IDENTITY_KEY_OVERWRITE_REQUEST, () => {
+            const {
+                passwordConfirmationStatusUrl,
+                passwordConfirmUrl,
+                csrfToken,
+            } = document.body?.dataset ?? {};
+
+            this.passwordConfirmationStatusUrl = passwordConfirmationStatusUrl ?? '';
+            this.passwordConfirmUrl = passwordConfirmUrl ?? '';
+            this.csrfToken = csrfToken ?? '';
+
+            window.addEventListener(IDENTITY_KEY_OVERWRITE_REQUEST, async () => {
+                await this.prepareModal();
                 this.$flux.modal('identity-key-overwrite').show();
             });
         },
 
-        confirmIdentityKeyOverwrite() {
+        async prepareModal() {
+            this.password = '';
+            this.passwordError = '';
+            this.confirming = false;
+
+            if (! this.passwordConfirmationStatusUrl) {
+                this.passwordRequired = true;
+
+                return;
+            }
+
+            this.passwordRequired = ! await isPasswordRecentlyConfirmed(this.passwordConfirmationStatusUrl);
+        },
+
+        async confirmIdentityKeyOverwrite() {
+            if (this.confirming) {
+                return;
+            }
+
+            this.passwordError = '';
+
+            if (this.passwordRequired) {
+                const trimmedPassword = this.password.trim();
+
+                if (trimmedPassword === '') {
+                    this.passwordError = 'Password is required to replace your encryption key.';
+
+                    return;
+                }
+
+                this.confirming = true;
+
+                try {
+                    const result = await confirmAccountPassword(
+                        this.passwordConfirmUrl,
+                        this.csrfToken,
+                        trimmedPassword,
+                    );
+
+                    if (! result.confirmed) {
+                        this.passwordError = result.error ?? 'Unable to verify password.';
+
+                        return;
+                    }
+
+                    this.passwordRequired = false;
+                    this.password = '';
+                } finally {
+                    this.confirming = false;
+                }
+            }
+
             settleIdentityKeyOverwriteConfirmation(true);
             this.$flux.modal('identity-key-overwrite').close();
         },
 
         cancelIdentityKeyOverwrite() {
+            this.password = '';
+            this.passwordError = '';
+            this.confirming = false;
             settleIdentityKeyOverwriteConfirmation(false);
             this.$flux.modal('identity-key-overwrite').close();
         },

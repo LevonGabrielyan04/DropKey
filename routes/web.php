@@ -23,7 +23,7 @@ Route::middleware(['throttle:60,1', 'verified'])->group(function () {
 
     Route::prefix('api')->group(function () {
         Route::post('/identity/public-key', [IdentityKeyController::class, 'store'])
-            ->middleware('throttle:chat-identity')
+            ->middleware(['throttle:chat-identity', 'identity-key-overwrite-password'])
             ->name('api.identity.public-key.store');
         Route::get('/identity/public-key', [IdentityKeyController::class, 'mine'])
             ->middleware('throttle:chat-poll')
