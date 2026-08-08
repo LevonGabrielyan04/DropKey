@@ -25,7 +25,7 @@ jobs:
       - name: Setup Node.js environment
         uses: actions/setup-node@v4
         with:
-          node-version: 20 # Specify your required Node version here
+          node-version: '24'
 
       # 3. Cache dependencies
       - name: Cache Node modules
