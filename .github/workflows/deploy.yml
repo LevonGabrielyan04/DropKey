@@ -1,6 +1,7 @@
 # Build the Docker image, push to GHCR, and deploy to the production server over SSH.
 #
-# Triggers after the "tests" workflow succeeds on main, or manually via workflow_dispatch.
+# Triggers after the "tests" workflow succeeds on a push to main, or manually via workflow_dispatch.
+# PR-triggered test runs are ignored to avoid executing untrusted fork code with deploy secrets.
 #
 # Required GitHub repository secrets:
 #   DEPLOY_HOST       — server hostname or IP
@@ -39,6 +40,7 @@ jobs:
     if: >-
       github.event_name == 'workflow_dispatch' ||
       (github.event.workflow_run.conclusion == 'success' &&
+       github.event.workflow_run.event == 'push' &&
        github.event.workflow_run.head_branch == 'main')
     runs-on: ubuntu-latest
 
