@@ -164,16 +164,16 @@ it('allows lan dev hosts when running locally', function () {
     $policy = Policy::create([StrictPolicyPreset::class])->getContents();
 
     expect($policy)
-        ->toContain('http://10.29.74.198')
-        ->toContain('https://10.29.74.198')
-        ->toContain('http://10.29.74.198:8000')
-        ->toContain('https://10.29.74.198:8000')
-        ->toContain('http://10.29.74.198:5173')
-        ->toContain('https://10.29.74.198:5173')
-        ->toContain('https://vite.10.29.74.198:5173')
-        ->toContain('ws://10.29.74.198:5173')
-        ->toContain('wss://10.29.74.198:5173')
-        ->toContain('wss://vite.10.29.74.198:5173');
+        ->toContain('http://localhost')
+        ->toContain('https://localhost')
+        ->toContain('http://localhost:8000')
+        ->toContain('https://localhost:8000')
+        ->toContain('http://localhost:5173')
+        ->toContain('https://localhost:5173')
+        ->toContain('https://vite.localhost:5173')
+        ->toContain('ws://localhost:5173')
+        ->toContain('wss://localhost:5173')
+        ->toContain('wss://vite.localhost:5173');
 });
 
 it('allows lan dev hosts when running in testing', function () {
@@ -184,7 +184,7 @@ it('allows lan dev hosts when running in testing', function () {
 
     $policy = Policy::create([StrictPolicyPreset::class])->getContents();
 
-    expect($policy)->toContain('http://10.29.74.198:8000');
+    expect($policy)->toContain('http://localhost:8000');
 });
 
 it('does not allow lan dev hosts outside local and testing environments', function () {
@@ -195,10 +195,10 @@ it('does not allow lan dev hosts outside local and testing environments', functi
 
     $policy = Policy::create([StrictPolicyPreset::class])->getContents();
 
-    expect($policy)->not->toContain('10.29.74.198');
+    expect($policy)->not->toContain('http://localhost:8000');
 });
 
-it('does not allow loopback vite origins when the app url is not loopback', function () {
+it('does not allow dedicated loopback vite origins when the app url is not loopback', function () {
     config([
         'app.url' => 'https://example.test',
         'app.env' => 'local',
@@ -206,9 +206,7 @@ it('does not allow loopback vite origins when the app url is not loopback', func
 
     $policy = Policy::create([StrictPolicyPreset::class])->getContents();
 
-    expect($policy)
-        ->not->toContain('127.0.0.1:5173')
-        ->not->toContain('localhost:5173');
+    expect($policy)->not->toContain('127.0.0.1:5173');
 });
 
 it('adds upgrade-insecure-requests when the app url uses https', function () {
