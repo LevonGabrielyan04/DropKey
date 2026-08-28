@@ -40,9 +40,9 @@ it('assigns unique uuid identifiers when creating a conversation', function () {
     $conversation = createConversation($alice, $bob);
 
     expect($conversation->id)->toBeString()
-        ->and(Str::isUuid($conversation->id))->toBeTrue()
+        ->and(Str::isUuid($conversation->id, version: 7))->toBeTrue()
         ->and($conversation->public_key)->toBeString()
-        ->and(Str::isUuid($conversation->public_key))->toBeTrue();
+        ->and(Str::isUuid($conversation->public_key, version: 4))->toBeTrue();
 });
 
 it('stores conversation public keys as binary uuids in the database', function () {

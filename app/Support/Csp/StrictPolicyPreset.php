@@ -229,7 +229,7 @@ class StrictPolicyPreset implements Preset
      */
     private function lanDevHosts(): array
     {
-        return ['10.29.74.198'];
+        return ['localhost'];
     }
 
     /**

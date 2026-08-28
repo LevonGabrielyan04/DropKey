@@ -55,6 +55,23 @@ class Conversation extends Model
     }
 
     /**
+     * Generate unique keys for the model.
+     *
+     * Internal ids stay time-ordered for database locality. Public keys use
+     * random UUID v4 so broadcast channel names do not leak creation time.
+     */
+    public function setUniqueIds(): void
+    {
+        if (empty($this->id)) {
+            $this->id = (string) Str::uuid7();
+        }
+
+        if (empty($this->public_key)) {
+            $this->public_key = (string) Str::uuid();
+        }
+    }
+
+    /**
      * Resolve route model bindings using the public identifier.
      */
     public function getRouteKeyName(): string
