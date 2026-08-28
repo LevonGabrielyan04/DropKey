@@ -1,6 +1,9 @@
 # DropKey
 
 [![Quality gate status](https://sonarcloud.io/api/project_badges/measure?project=LevonGabrielyan04_dropkey&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=LevonGabrielyan04_dropkey)
+[![Reliability Rating](https://sonarcloud.io/api/project_badges/measure?project=LevonGabrielyan04_dropkey&metric=reliability_rating)](https://sonarcloud.io/summary/new_code?id=LevonGabrielyan04_dropkey)
+[![Security Rating](https://sonarcloud.io/api/project_badges/measure?project=LevonGabrielyan04_dropkey&metric=security_rating)](https://sonarcloud.io/summary/new_code?id=LevonGabrielyan04_dropkey)
+[![Maintainability Rating](https://sonarcloud.io/api/project_badges/measure?project=LevonGabrielyan04_dropkey&metric=sqale_rating)](https://sonarcloud.io/summary/new_code?id=LevonGabrielyan04_dropkey)
 [![tests](https://github.com/LevonGabrielyan04/dropkey/actions/workflows/tests.yml/badge.svg?branch=main)](https://github.com/LevonGabrielyan04/dropkey/actions/workflows/tests.yml)
 
 DropKey is a **free and open-source** end-to-end encrypted application for sharing passwords and other secrets with specific people, and for private messaging between registered users. Secrets and chat messages are encrypted in the browser before they ever reach the server. The server stores only ciphertext and never sees decryption keys or passwords.
