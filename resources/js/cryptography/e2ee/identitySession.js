@@ -18,6 +18,25 @@ import {
 } from './keyStore.js';
 
 const SESSION_BROWSER_DB_ID_KEY = 'passshare:browser-db-id';
+const BROWSER_DB_ID_PATTERN = /^[0-7][0-9A-HJKMNP-TV-Z]{25}$/i;
+
+/**
+ * @param {unknown} browserDbId
+ * @returns {string|null}
+ */
+function sanitizeBrowserDbId(browserDbId) {
+    if (typeof browserDbId !== 'string') {
+        return null;
+    }
+
+    const normalized = browserDbId.trim();
+
+    if (! BROWSER_DB_ID_PATTERN.test(normalized)) {
+        return null;
+    }
+
+    return normalized.toUpperCase();
+}
 
 /** @type {Map<string, string>} */
 const memorySessionStore = new Map();
@@ -58,14 +77,20 @@ export function getCachedIdentity() {
  * @param {string} browserDbId
  */
 export function setSessionBrowserDbId(browserDbId) {
-    sessionStore().setItem(SESSION_BROWSER_DB_ID_KEY, browserDbId);
+    const sanitizedBrowserDbId = sanitizeBrowserDbId(browserDbId);
+
+    if (! sanitizedBrowserDbId) {
+        return;
+    }
+
+    sessionStore().setItem(SESSION_BROWSER_DB_ID_KEY, sanitizedBrowserDbId);
 }
 
 /**
  * @returns {string|null}
  */
 export function getSessionBrowserDbId() {
-    return sessionStore().getItem(SESSION_BROWSER_DB_ID_KEY);
+    return sanitizeBrowserDbId(sessionStore().getItem(SESSION_BROWSER_DB_ID_KEY));
 }
 
 export function clearCachedIdentity() {
@@ -302,7 +327,7 @@ export async function lockIdentity() {
  */
 export function resolveBrowserDbId() {
     if (typeof document !== 'undefined') {
-        const datasetBrowserDbId = document.body?.dataset?.browserDbId;
+        const datasetBrowserDbId = sanitizeBrowserDbId(document.body?.dataset?.browserDbId);
 
         if (datasetBrowserDbId) {
             return datasetBrowserDbId;

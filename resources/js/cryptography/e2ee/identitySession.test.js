@@ -43,10 +43,12 @@ import {
     clearSessionCredentials,
     consumeTransientAccountPassword,
     getCachedIdentity,
+    getSessionBrowserDbId,
     loadIdentity,
     lockIdentity,
     persistIdentity,
     persistUnlockedIdentity,
+    resolveBrowserDbId,
     resolveStoredIdentity,
     saveIdentity,
     setSessionBrowserDbId,
@@ -54,7 +56,7 @@ import {
     unlockIdentity,
 } from './identitySession.js';
 
-const BROWSER_DB_ID = '01JABCDEF1234567890ABCDEFGH';
+const BROWSER_DB_ID = '01JABCDEF1234567890ABCDEFG';
 
 /**
  * @returns {Promise<{ privateKey: CryptoKey, publicJwk: JsonWebKey }>}
@@ -315,5 +317,35 @@ describe('identitySession', () => {
         expect(clearUnlockedIdentity).toHaveBeenCalledWith(BROWSER_DB_ID);
         expect(getCachedIdentity()).toBeNull();
         expect(store.unlocked).toBeNull();
+    });
+
+    it('rejects invalid browser database ids before writing to session storage', () => {
+        setSessionBrowserDbId('<img src=x onerror=alert(1)>');
+        setSessionBrowserDbId('not-a-ulid');
+        setSessionBrowserDbId('');
+
+        expect(getSessionBrowserDbId()).toBeNull();
+    });
+
+    it('normalizes valid browser database ids to uppercase in session storage', () => {
+        setSessionBrowserDbId('01jabcdef1234567890abcdefg');
+
+        expect(getSessionBrowserDbId()).toBe(BROWSER_DB_ID);
+    });
+
+    it('ignores invalid browser database ids from the document dataset', () => {
+        setSessionBrowserDbId(BROWSER_DB_ID);
+
+        vi.stubGlobal('document', {
+            body: {
+                dataset: {
+                    browserDbId: 'javascript:alert(1)',
+                },
+            },
+        });
+
+        expect(resolveBrowserDbId()).toBe(BROWSER_DB_ID);
+
+        vi.unstubAllGlobals();
     });
 });
