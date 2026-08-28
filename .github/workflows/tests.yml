@@ -34,7 +34,7 @@ jobs:
           cache: npm
 
       - name: Install Node Dependencies
-        run: npm ci
+        run: npm ci --ignore-scripts
 
       - name: Run JavaScript Tests
         run: npm test
@@ -79,7 +79,7 @@ jobs:
           cache: npm
 
       - name: Install Node Dependencies
-        run: npm ci
+        run: npm ci --ignore-scripts
 
       - name: Install Dependencies
         run: composer install --no-interaction --prefer-dist --optimize-autoloader
