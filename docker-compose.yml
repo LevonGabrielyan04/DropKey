@@ -15,9 +15,9 @@ x-app-build: &app-build
   context: .
   dockerfile: Dockerfile
   args:
-    NODE_VERSION: 24.18.0-alpine3.24
-    PHP_VERSION: 8.5.7-fpm-alpine3.24
-    COMPOSER_VERSION: 2.10.1
+    NODE_VERSION: 24.20.0-alpine3.24
+    PHP_VERSION: 8.5.8-fpm-alpine3.24
+    COMPOSER_VERSION: 2.10.3
   secrets:
     - flux_username
     - flux_license_key
@@ -126,7 +126,7 @@ services:
       start_period: 90s
 
   cloudflared:
-    image: cloudflare/cloudflared:2026.6.1
+    image: cloudflare/cloudflared:2026.8.2
     profiles:
       - tunnel
     restart: unless-stopped
@@ -146,7 +146,7 @@ services:
       - /tmp
 
   mariadb:
-    image: mariadb:12.3.2-noble
+    image: mariadb:12.3.3-noble
     restart: unless-stopped
     # Invoke via bash — bind-mounted scripts may lack +x on the host (non-root deploys).
     entrypoint: ["/bin/bash", "/scripts/entrypoint-wrapper.sh"]
@@ -170,7 +170,7 @@ services:
       - no-new-privileges:true
 
   redis:
-    image: valkey/valkey:8.1.8-alpine3.23
+    image: valkey/valkey:8.1.9-alpine3.24
     restart: unless-stopped
     env_file: .env
     networks:

@@ -1,9 +1,9 @@
 # syntax=docker/dockerfile:1
 
 # Pinned hardened base images (Alpine 3.24 / LTS patch releases).
-ARG NODE_VERSION=24.18.0-alpine3.24
-ARG PHP_VERSION=8.5.7-fpm-alpine3.24
-ARG COMPOSER_VERSION=2.10.1
+ARG NODE_VERSION=24.20.0-alpine3.24
+ARG PHP_VERSION=8.5.8-fpm-alpine3.24
+ARG COMPOSER_VERSION=2.10.3
 
 FROM composer/composer:${COMPOSER_VERSION} AS composer
 
