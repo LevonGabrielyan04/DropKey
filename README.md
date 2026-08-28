@@ -212,14 +212,6 @@ Compose reads port mapping from `.env.compose` and application secrets from `.en
 
 The **scheduler** service runs `php artisan schedule:work` automatically. No separate cron setup is needed inside Docker.
 
-Optional build-time secrets for the Livewire Flux license:
-
-```bash
-FLUX_USERNAME=...
-FLUX_LICENSE_KEY=...
-
-```
-
 ### Automated deployment (GitHub Actions)
 
 Pushes to `main` run tests first; when they pass, the **deploy** workflow builds the Docker image, pushes it to [GitHub Container Registry](https://docs.github.com/en/packages/working-with-a-github-packages-registry/working-with-the-container-registry), and restarts the stack on your server over SSH.
@@ -239,7 +231,6 @@ Pushes to `main` run tests first; when they pass, the **deploy** workflow builds
 | `DEPLOY_USER` | SSH user |
 | `DEPLOY_SSH_KEY` | Private SSH key (PEM) |
 | `DEPLOY_PATH` | Repo path on the server (e.g. `/opt/passshare`) |
-| `FLUX_USERNAME` / `FLUX_LICENSE_KEY` | Flux license (build-time; same as CI) |
 
 Create a **production** environment in GitHub (optional) for deployment approval gates.
 

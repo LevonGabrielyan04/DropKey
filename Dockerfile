@@ -33,12 +33,7 @@ WORKDIR /app
 
 COPY composer.json composer.lock ./
 
-RUN --mount=type=secret,id=flux_username,required=false \
-    --mount=type=secret,id=flux_license_key,required=false \
-    if [ -s /run/secrets/flux_username ] && [ -s /run/secrets/flux_license_key ]; then \
-        composer config http-basic.composer.fluxui.dev "$(cat /run/secrets/flux_username)" "$(cat /run/secrets/flux_license_key)"; \
-    fi \
-    && composer install \
+RUN composer install \
         --no-dev \
         --no-interaction \
         --no-progress \
