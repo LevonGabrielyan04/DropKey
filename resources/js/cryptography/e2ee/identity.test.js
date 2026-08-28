@@ -26,8 +26,14 @@ vi.mock('./identityOverwrite.js', () => ({
     IdentityKeyOverwriteCancelledError: class IdentityKeyOverwriteCancelledError extends Error {},
 }));
 
+const confirmIdentityKeyOverwrite = vi.hoisted(() => vi.fn(async () => true));
+
+vi.mock('./identityOverwriteConfirmation.js', () => ({
+    confirmIdentityKeyOverwrite,
+}));
+
 import { clearCachedIdentity, loadIdentity, persistUnlockedIdentity } from './identitySession.js';
-import { ensureIdentityOverwriteAllowed } from './identityOverwrite.js';
+import { ensureIdentityOverwriteAllowed, IdentityKeyOverwriteCancelledError } from './identityOverwrite.js';
 import { ensureIdentityKeyPair, ensureServerIdentityKey, registerPublicKey } from './identity.js';
 
 describe('identitySession integration via identity', () => {
@@ -82,6 +88,42 @@ describe('identitySession integration via identity', () => {
         await expect(registerPublicKey('/api/identity/public-key', 'csrf-token'))
             .rejects
             .toThrow('Failed to register public key.');
+
+        vi.unstubAllGlobals();
+    });
+
+    it('prompts for overwrite confirmation and retries registration after a 423 response', async () => {
+        const fetchMock = vi.fn()
+            .mockResolvedValueOnce({ status: 423 })
+            .mockResolvedValueOnce({
+                ok: true,
+                json: async () => ({
+                    status: 'ok',
+                    browser_db_id: '01JABCDEF1234567890ABCDEFGH',
+                }),
+            });
+        vi.stubGlobal('fetch', fetchMock);
+
+        await registerPublicKey('/api/identity/public-key', 'csrf-token');
+
+        expect(confirmIdentityKeyOverwrite).toHaveBeenCalledOnce();
+        expect(fetchMock).toHaveBeenCalledTimes(2);
+        expect(fetchMock.mock.calls[0][0]).toBe('/api/identity/public-key');
+        expect(fetchMock.mock.calls[1][0]).toBe('/api/identity/public-key');
+
+        vi.unstubAllGlobals();
+    });
+
+    it('aborts registration when overwrite confirmation is declined after a 423 response', async () => {
+        confirmIdentityKeyOverwrite.mockResolvedValueOnce(false);
+
+        vi.stubGlobal('fetch', vi.fn(async () => ({ status: 423 })));
+
+        await expect(registerPublicKey('/api/identity/public-key', 'csrf-token'))
+            .rejects
+            .toBeInstanceOf(IdentityKeyOverwriteCancelledError);
+
+        expect(confirmIdentityKeyOverwrite).toHaveBeenCalledOnce();
 
         vi.unstubAllGlobals();
     });

@@ -1,8 +1,8 @@
 import { formatLocalDatetime } from './formatLocalDatetime.js';
 import {
-    confirmAccountPassword,
-    isPasswordRecentlyConfirmed,
-} from './cryptography/e2ee/identityKeyPasswordConfirmation.js';
+    resolvePasswordRequiredForIdentityKeyOverwrite,
+    verifyPasswordForIdentityKeyOverwrite,
+} from './identityKeyOverwriteModal.js';
 import {
     settleIdentityKeyOverwriteConfirmation,
 } from './cryptography/e2ee/identityOverwriteConfirmation.js';
@@ -38,13 +38,9 @@ document.addEventListener('alpine:init', () => {
             this.passwordError = '';
             this.confirming = false;
 
-            if (! this.passwordConfirmationStatusUrl) {
-                this.passwordRequired = true;
-
-                return;
-            }
-
-            this.passwordRequired = ! await isPasswordRecentlyConfirmed(this.passwordConfirmationStatusUrl);
+            this.passwordRequired = await resolvePasswordRequiredForIdentityKeyOverwrite(
+                this.passwordConfirmationStatusUrl,
+            );
         },
 
         async confirmIdentityKeyOverwrite() {
@@ -55,25 +51,17 @@ document.addEventListener('alpine:init', () => {
             this.passwordError = '';
 
             if (this.passwordRequired) {
-                const trimmedPassword = this.password.trim();
-
-                if (trimmedPassword === '') {
-                    this.passwordError = 'Password is required to replace your encryption key.';
-
-                    return;
-                }
-
                 this.confirming = true;
 
                 try {
-                    const result = await confirmAccountPassword(
-                        this.passwordConfirmUrl,
-                        this.csrfToken,
-                        trimmedPassword,
-                    );
+                    const result = await verifyPasswordForIdentityKeyOverwrite({
+                        password: this.password,
+                        passwordConfirmUrl: this.passwordConfirmUrl,
+                        csrfToken: this.csrfToken,
+                    });
 
-                    if (! result.confirmed) {
-                        this.passwordError = result.error ?? 'Unable to verify password.';
+                    if (! result.ok) {
+                        this.passwordError = result.error;
 
                         return;
                     }

@@ -26,6 +26,13 @@ export default defineConfig({
     test: {
         environment: 'node',
         include: ['resources/js/**/*.test.js'],
+        coverage: {
+            provider: 'v8',
+            reporter: ['lcov', 'text'],
+            reportsDirectory: './build/js-coverage',
+            include: ['resources/js/**/*.js'],
+            exclude: ['**/*.test.js'],
+        },
     },
     server: {
         cors: true,

@@ -2,48 +2,71 @@ name: SonarCloud analysis
 
 on:
   push:
-    branches: [ "main" ]
+    branches: [main]
   pull_request:
-    branches: [ "main" ]
+    branches: [main]
   workflow_dispatch:
 
 permissions:
-  pull-requests: read # allows SonarCloud to decorate PRs with analysis results
+  contents: read
+  pull-requests: read
 
 jobs:
   Analysis:
     runs-on: ubuntu-latest
 
+    services:
+      redis:
+        image: redis:7
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
     steps:
-      # 1. Checkout the repository (Crucial step missing in the original)
       - name: Checkout repository
         uses: actions/checkout@v7
         with:
-          fetch-depth: 0 # Shallow clones should be disabled for a better relevancy of analysis
+          fetch-depth: 0
 
-      # 2. Setup Node.js environment (Must happen before analysis)
-      - name: Setup Node.js environment
+      - name: Setup PHP
+        uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240
+        with:
+          php-version: '8.5'
+          extensions: redis
+          tools: composer:v2
+          coverage: pcov
+
+      - name: Setup Node.js
         uses: actions/setup-node@v7
         with:
           node-version: '24'
+          cache: npm
 
-      # 3. Cache dependencies
-      - name: Cache Node modules
-        uses: actions/cache@v6
-        with:
-          path: ~/.npm
-          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
-          restore-keys: |
-            ${{ runner.os }}-node-
+      - name: Install PHP dependencies
+        run: composer install --no-interaction --prefer-dist --optimize-autoloader
 
-      # 4. Analyze with SonarCloud
+      - name: Install Node dependencies
+        run: npm ci --ignore-scripts
+
+      - name: Prepare application environment
+        run: |
+          cp .env.testing .env
+          php artisan key:generate
+
+      - name: Run PHP tests with coverage
+        run: php artisan test --coverage-clover=build/php-coverage.xml
+
+      - name: Run JavaScript tests with coverage
+        run: npm test -- --coverage
+        env:
+          LARAVEL_BYPASS_ENV_CHECK: 1
+
       - name: Analyze with SonarCloud
         uses: SonarSource/sonarcloud-github-action@ffc3010689be73b8e5ae0c57ce35968afd7909e8
         env:
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}   # Ensure this secret is added in GitHub
-        with:
-          # Arguments must be formatted as a string block
-          args: >
-            -Dsonar.projectKey=LevonGabrielyan04_dropkey
-            -Dsonar.organization=levongabrielyan04
-          projectBaseDir: .
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
