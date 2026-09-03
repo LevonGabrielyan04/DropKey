@@ -147,7 +147,9 @@ it('lists existing conversations on the inbox page', function () {
         ->get(route('chat.index'))
         ->assertSuccessful()
         ->assertSee('Bob Chat')
-        ->assertSee($bob->public_key, false);
+        ->assertSee($bob->public_key, false)
+        ->assertSee('min-w-0 truncate text-sm font-bold uppercase tracking-[0.16em]', false)
+        ->assertSee(':title="conversation.partner.name"', false);
 });
 
 it('shows the unread message count for conversations on the inbox page', function () {

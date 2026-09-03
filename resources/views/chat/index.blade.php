@@ -8,7 +8,7 @@
         data-unread-label-one="{{ __(':count unread message') }}"
         data-unread-label-other="{{ __(':count unread messages') }}"
         data-empty-conversations-label="{{ __('No conversations yet.') }}"
-        class="flex h-full w-full flex-1 flex-col font-mono"
+        class="flex h-full min-w-0 w-full flex-1 flex-col font-mono"
     >
         <header class="border-2 border-zinc-950 bg-zinc-50 dark:border-zinc-100 dark:bg-zinc-950">
             <div class="border-b-2 border-emerald-500 bg-emerald-500 px-4 py-1 text-[10px] font-bold uppercase tracking-[0.24em] text-emerald-950">
@@ -63,7 +63,7 @@
             </form>
         </section>
 
-        <section class="border-x-2 border-b-2 border-zinc-950 dark:border-zinc-100">
+        <section class="min-w-0 border-x-2 border-b-2 border-zinc-950 dark:border-zinc-100">
             <div class="border-b-2 border-zinc-950 bg-zinc-200 px-4 py-3 dark:border-zinc-100 dark:bg-zinc-800">
                 <p class="text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-600 dark:text-zinc-400">
                     {{ __('Recent conversations') }}
@@ -81,21 +81,22 @@
 
             <ul
                 x-show="conversations.length > 0"
-                class="divide-y-2 divide-zinc-950 bg-white dark:divide-zinc-100 dark:bg-zinc-950"
+                class="min-w-0 divide-y-2 divide-zinc-950 bg-white dark:divide-zinc-100 dark:bg-zinc-950"
                 @if ($conversations->isEmpty())
                     style="display: none;"
                 @endif
             >
                 <template x-for="conversation in conversations" :key="conversation.public_key">
-                    <li>
+                    <li class="min-w-0">
                         <a
                             :href="conversation.partner.url"
                             wire:navigate
-                            class="flex items-center justify-between gap-4 px-6 py-4 transition-colors hover:bg-zinc-100 dark:hover:bg-zinc-900"
+                            class="flex min-w-0 items-center justify-between gap-4 px-6 py-4 transition-colors hover:bg-zinc-100 dark:hover:bg-zinc-900"
                         >
                             <span
                                 x-text="conversation.partner.name"
-                                class="text-sm font-bold uppercase tracking-[0.16em] text-zinc-950 dark:text-zinc-50"
+                                :title="conversation.partner.name"
+                                class="min-w-0 truncate text-sm font-bold uppercase tracking-[0.16em] text-zinc-950 dark:text-zinc-50"
                             ></span>
 
                             <span class="flex shrink-0 items-center gap-3">
