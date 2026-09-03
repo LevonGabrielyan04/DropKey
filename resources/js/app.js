@@ -8,3 +8,4 @@ import './e2eeChatSettings.js';
 import './identityRegistration.js';
 import './passkeys.js';
 import './pushNotifications.js';
+import './registerServiceWorker.js';

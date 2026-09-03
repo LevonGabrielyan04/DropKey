@@ -1,5 +1,14 @@
 /* global self, clients */
 
+/**
+ * Network-only fetch handler for PWA installability.
+ * Intentionally does not use the Cache API so chat pages, send pages,
+ * Livewire requests, and secret payloads are never stored offline.
+ */
+self.addEventListener('fetch', (event) => {
+    event.respondWith(fetch(event.request));
+});
+
 self.addEventListener('push', (event) => {
     const payload = parsePushPayload(event.data);
 

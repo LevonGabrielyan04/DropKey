@@ -8,11 +8,16 @@ use App\Http\Controllers\MarkChatMessageAsViewedController;
 use App\Http\Controllers\MessageController;
 use App\Http\Controllers\PushSubscriptionController;
 use App\Http\Controllers\SendController;
+use App\Http\Controllers\WebAppManifestController;
 use Illuminate\Support\Facades\Route;
 
 Route::view('/', 'welcome')
     ->withoutMiddleware(['auth'])
     ->name('home');
+
+Route::get('/manifest.webmanifest', WebAppManifestController::class)
+    ->withoutMiddleware(['auth'])
+    ->name('manifest');
 
 Route::middleware(['throttle:60,1', 'verified'])->group(function () {
     Route::resource('sends', SendController::class)->except(['index']);

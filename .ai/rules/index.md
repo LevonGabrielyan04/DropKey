@@ -5,6 +5,7 @@ Before planning or editing, find the row whose globs match the file's path and r
 | Applies to | Rule file |
 | --- | --- |
 | resources/views/chat/**/*.blade.php, resources/views/chat/index.blade.php | .ai/rules/chat.md |
+| public/sw.js,resources/js/registerServiceWorker.js,app/Http/Controllers/WebAppManifestController.php | .ai/rules/controllers.md |
 | database/migrations/**/*.php | .ai/rules/migrations.md |
 | app/Services/R2UploadService.php | .ai/rules/services.md |
 | resources/views/**/*.blade.php | .ai/rules/views.md |

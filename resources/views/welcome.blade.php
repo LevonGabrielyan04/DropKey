@@ -9,10 +9,16 @@
 
         <link rel="icon" href="/favicon.png" type="image/png">
         <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+        <link rel="manifest" href="{{ route('manifest') }}">
+        <meta name="theme-color" content="#09090b">
+        <meta name="mobile-web-app-capable" content="yes">
+        <meta name="apple-mobile-web-app-capable" content="yes">
+        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+        <meta name="apple-mobile-web-app-title" content="{{ config('app.name') }}">
 
         @fonts
 
-        @vite(['resources/css/app.css'])
+        @vite(['resources/css/app.css', 'resources/js/registerServiceWorker.js'])
 
         <link rel="stylesheet" href="{{ asset('css/cursors.css') }}">
     </head>
