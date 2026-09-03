@@ -56,7 +56,7 @@ import {
     unlockIdentity,
 } from './identitySession.js';
 
-const BROWSER_DB_ID = '01JABCDEF1234567890ABCDEFG';
+const BROWSER_DB_ID = 'a0a2a2d2-0b87-4a18-83f2-2529882be2de';
 
 /**
  * @returns {Promise<{ privateKey: CryptoKey, publicJwk: JsonWebKey }>}
@@ -321,14 +321,14 @@ describe('identitySession', () => {
 
     it('rejects invalid browser database ids before writing to session storage', () => {
         setSessionBrowserDbId('<img src=x onerror=alert(1)>');
-        setSessionBrowserDbId('not-a-ulid');
+        setSessionBrowserDbId('not-a-uuid');
         setSessionBrowserDbId('');
 
         expect(getSessionBrowserDbId()).toBeNull();
     });
 
-    it('normalizes valid browser database ids to uppercase in session storage', () => {
-        setSessionBrowserDbId('01jabcdef1234567890abcdefg');
+    it('normalizes valid browser database ids to lowercase in session storage', () => {
+        setSessionBrowserDbId('A0A2A2D2-0B87-4A18-83F2-2529882BE2DE');
 
         expect(getSessionBrowserDbId()).toBe(BROWSER_DB_ID);
     });

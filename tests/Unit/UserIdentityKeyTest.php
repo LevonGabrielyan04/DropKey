@@ -20,7 +20,7 @@ it('assigns a unique browser database id when creating an identity key', functio
 
     expect($identityKey->browser_db_id)
         ->not->toBeEmpty()
-        ->and(Str::isUlid($identityKey->browser_db_id))->toBeTrue();
+        ->and(Str::isUuid($identityKey->browser_db_id))->toBeTrue();
 });
 
 it('preserves an existing browser database id on update', function () {

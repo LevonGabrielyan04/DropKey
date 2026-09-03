@@ -45,7 +45,7 @@ class SendFactory
 
         if (! $persisted) {
             return [
-                'id' => $merged['id'] ?? (string) Str::ulid(),
+                'id' => $merged['id'] ?? (string) Str::uuid7(),
                 'user_id' => $merged['user_id'],
                 'message' => $merged['message'],
                 'name' => $merged['name'],

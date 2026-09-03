@@ -18,7 +18,7 @@ import {
 } from './keyStore.js';
 
 const SESSION_BROWSER_DB_ID_KEY = 'passshare:browser-db-id';
-const BROWSER_DB_ID_PATTERN = /^[0-7][0-9A-HJKMNP-TV-Z]{25}$/i;
+const BROWSER_DB_ID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 /**
  * @param {unknown} browserDbId
@@ -35,7 +35,7 @@ function sanitizeBrowserDbId(browserDbId) {
         return null;
     }
 
-    return normalized.toUpperCase();
+    return normalized.toLowerCase();
 }
 
 /** @type {Map<string, string>} */

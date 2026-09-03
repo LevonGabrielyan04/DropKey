@@ -7,12 +7,10 @@ namespace App\Models;
 use App\Enums\TimePeriod;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
-use Illuminate\Database\Eloquent\Casts\AsBinary;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use Illuminate\Support\BinaryCodec;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Str;
 
@@ -40,7 +38,6 @@ class Conversation extends Model
         return [
             'auto_delete' => TimePeriod::class,
             'created_at' => 'datetime',
-            'public_key' => AsBinary::uuid(),
         ];
     }
 
@@ -77,21 +74,6 @@ class Conversation extends Model
     public function getRouteKeyName(): string
     {
         return 'public_key';
-    }
-
-    /**
-     * Retrieve the model for a bound value, encoding the public identifier
-     * to match the binary column it is stored in.
-     */
-    public function resolveRouteBindingQuery($query, $value, $field = null)
-    {
-        $field ??= $this->getRouteKeyName();
-
-        if ($field === 'public_key' && Str::isUuid($value)) {
-            $value = BinaryCodec::encode($value, 'uuid');
-        }
-
-        return parent::resolveRouteBindingQuery($query, $value, $field);
     }
 
     /**

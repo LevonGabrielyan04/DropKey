@@ -7,7 +7,7 @@ vi.mock('./identityOverwriteConfirmation.js', () => ({
 }));
 
 vi.mock('./identitySession.js', () => ({
-    resolveBrowserDbId: vi.fn(() => '01JABCDEF1234567890ABCDEFGH'),
+    resolveBrowserDbId: vi.fn(() => 'a0a2a2d2-0b87-4a18-83f2-2529882be2de'),
 }));
 
 vi.mock('./keyStore.js', () => ({
@@ -32,7 +32,7 @@ describe('identityOverwrite', () => {
     });
 
     it('does not detect local overwrite when no encrypted identity exists', async () => {
-        await expect(wouldOverwriteLocalIdentity('01JABCDEF1234567890ABCDEFGH')).resolves.toBe(false);
+        await expect(wouldOverwriteLocalIdentity('a0a2a2d2-0b87-4a18-83f2-2529882be2de')).resolves.toBe(false);
     });
 
     it('does not detect local overwrite when an unlocked CryptoKey is already stored', async () => {
@@ -45,7 +45,7 @@ describe('identityOverwrite', () => {
             publicJwk: { kty: 'EC' },
         });
 
-        await expect(wouldOverwriteLocalIdentity('01JABCDEF1234567890ABCDEFGH')).resolves.toBe(false);
+        await expect(wouldOverwriteLocalIdentity('a0a2a2d2-0b87-4a18-83f2-2529882be2de')).resolves.toBe(false);
     });
 
     it('detects local overwrite when encrypted identity exists without an unlocked key', async () => {
@@ -55,7 +55,7 @@ describe('identityOverwrite', () => {
             iv: 'iv',
         });
 
-        await expect(wouldOverwriteLocalIdentity('01JABCDEF1234567890ABCDEFGH')).resolves.toBe(true);
+        await expect(wouldOverwriteLocalIdentity('a0a2a2d2-0b87-4a18-83f2-2529882be2de')).resolves.toBe(true);
     });
 
     it('detects server overwrite when fingerprints differ', async () => {
@@ -98,7 +98,7 @@ describe('identityOverwrite', () => {
         await ensureIdentityOverwriteAllowed({
             checkLocal: true,
             checkServer: false,
-            browserDbId: '01JABCDEF1234567890ABCDEFGH',
+            browserDbId: 'a0a2a2d2-0b87-4a18-83f2-2529882be2de',
         });
 
         expect(confirmIdentityKeyOverwrite).toHaveBeenCalledOnce();
@@ -115,7 +115,7 @@ describe('identityOverwrite', () => {
         await expect(ensureIdentityOverwriteAllowed({
             checkLocal: true,
             checkServer: false,
-            browserDbId: '01JABCDEF1234567890ABCDEFGH',
+            browserDbId: 'a0a2a2d2-0b87-4a18-83f2-2529882be2de',
         })).rejects.toBeInstanceOf(IdentityKeyOverwriteCancelledError);
     });
 });

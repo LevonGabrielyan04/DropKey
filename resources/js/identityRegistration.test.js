@@ -44,7 +44,7 @@ describe('identityRegistration bootstrap', () => {
         const doc = {
             body: {
                 dataset: {
-                    browserDbId: '01JABCDEF1234567890ABCDEFGH',
+                    browserDbId: 'a0a2a2d2-0b87-4a18-83f2-2529882be2de',
                     identityRegisterUrl: '/api/identity/public-key',
                     identityMineUrl: '/api/identity/public-key/mine',
                     csrfToken: 'csrf-token',
@@ -56,7 +56,7 @@ describe('identityRegistration bootstrap', () => {
 
         await bootstrapIdentityRegistration(doc);
 
-        expect(setSessionBrowserDbId).toHaveBeenCalledWith('01JABCDEF1234567890ABCDEFGH');
+        expect(setSessionBrowserDbId).toHaveBeenCalledWith('a0a2a2d2-0b87-4a18-83f2-2529882be2de');
         expect(ensureServerIdentityKey).toHaveBeenCalledOnce();
     });
 

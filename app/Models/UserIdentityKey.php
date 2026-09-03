@@ -6,7 +6,6 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
-use Illuminate\Database\Eloquent\Casts\AsBinary;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -35,7 +34,6 @@ class UserIdentityKey extends Model
     protected function casts(): array
     {
         return [
-            'browser_db_id' => AsBinary::ulid(),
             'public_key_jwk' => 'array',
             'created_at' => 'datetime',
         ];
@@ -45,7 +43,7 @@ class UserIdentityKey extends Model
     {
         static::creating(function (UserIdentityKey $identityKey): void {
             if (blank($identityKey->browser_db_id)) {
-                $identityKey->browser_db_id = (string) Str::ulid();
+                $identityKey->browser_db_id = (string) Str::uuid();
             }
         });
     }

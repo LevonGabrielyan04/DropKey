@@ -5,12 +5,11 @@ declare(strict_types=1);
 namespace App\Actions;
 
 use App\Actions\Interfaces\PreparesSendPivotData;
-use Symfony\Component\Uid\Ulid;
 
 class PrepareSendPivotDataAction implements PreparesSendPivotData
 {
     /**
-     * Transform string ULID and viewer IDs into a binary-ready pivot array.
+     * Transform a send identifier and viewer IDs into a pivot array.
      *
      * @param  array<int, int>  $viewerIds
      * @return array<int, array{send_id: string, user_id: int}>
@@ -21,11 +20,9 @@ class PrepareSendPivotDataAction implements PreparesSendPivotData
             return [];
         }
 
-        $binarySendId = (new Ulid($sendId))->toBinary();
-
         return collect($viewerIds)
             ->map(fn (int $viewerId): array => [
-                'send_id' => $binarySendId,
+                'send_id' => $sendId,
                 'user_id' => $viewerId,
             ])
             ->values()

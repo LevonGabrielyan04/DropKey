@@ -24,7 +24,7 @@ class SendWriteService implements SendWriteServiceInterface
 
     public function createSend(array $data): Send
     {
-        $sendData = $this->buildSendData($data, (string) Str::ulid());
+        $sendData = $this->buildSendData($data, (string) Str::uuid7());
 
         $viewerIds = $this->resolveViewerIds($data['viewers'] ?? []);
         $pivotData = $this->prepareSendPivotData->execute($sendData->id, $viewerIds->values()->all());

@@ -4,7 +4,6 @@ use App\Models\ChatMessage;
 use App\Models\User;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\BinaryCodec;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Tests\TestCase;
@@ -28,7 +27,7 @@ it('assigns a unique uuid public id when creating a chat message', function () {
         ->and(Str::isUuid($message->public_id))->toBeTrue();
 });
 
-it('stores chat message public ids as binary uuids in the database', function () {
+it('stores chat message public ids as uuid columns in the database', function () {
     $alice = User::factory()->create();
     $bob = User::factory()->create();
     $conversation = createConversation($alice, $bob);
@@ -43,10 +42,8 @@ it('stores chat message public ids as binary uuids in the database', function ()
         ->where('id', $message->id)
         ->value('public_id');
 
-    expect($rawPublicId)
-        ->toBeString()
-        ->and(strlen($rawPublicId))->toBe(16)
-        ->and(BinaryCodec::decode($rawPublicId, 'uuid'))->toBe($message->public_id);
+    expect($rawPublicId)->toBe($message->public_id)
+        ->and(Str::isUuid($rawPublicId))->toBeTrue();
 });
 
 it('resolves chat message route model bindings by public id', function () {

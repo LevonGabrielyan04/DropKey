@@ -62,7 +62,7 @@ it('persists the user id from SendData without relying on auth', function () {
         message: 'secret',
         name: 'Owner Send',
         validTo: now()->addDay(),
-        id: (string) Str::ulid(),
+        id: (string) Str::uuid7(),
     );
 
     $send = $this->repository->create($sendData);
@@ -81,7 +81,7 @@ it('throws when updating a send that does not exist', function () {
         validTo: now()->addDay(),
     );
 
-    $this->repository->update((string) Str::ulid(), $sendData);
+    $this->repository->update((string) Str::uuid7(), $sendData);
 })->throws(ModelNotFoundException::class);
 
 it('caches findAll results by user id', function () {
@@ -148,7 +148,7 @@ it('invalidates findAll cache after creating a send', function () {
     expect(Cache::has($cacheKey))->toBeFalse();
 });
 
-it('deletes a send by its ulid', function () {
+it('deletes a send by its uuid', function () {
     $author = User::factory()->create();
 
     $send = SendFactory::create($author, [

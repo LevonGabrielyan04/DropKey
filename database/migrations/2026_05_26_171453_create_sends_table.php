@@ -12,12 +12,12 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('sends', function (Blueprint $table) {
-            $table->binary('id', length: 16, fixed: true)->primary();
+            $table->uuid('id')->primary();
             $table->foreignId('user_id')->constrained('users')->cascadeOnDelete();
             $table->text('message');
             $table->string('name', 255);
             $table->dateTime('valid_to')->index();
-            $table->binary('public_id', length: 16, fixed: true)->unique();
+            $table->uuid('public_id')->unique();
 
             $table->unique(['user_id', 'name']);
             $table->index('name');

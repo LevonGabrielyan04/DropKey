@@ -5,7 +5,7 @@ const identityStore = vi.hoisted(() => ({
 }));
 
 vi.mock('./identitySession.js', () => ({
-    getSessionBrowserDbId: vi.fn(() => '01JABCDEF1234567890ABCDEFGH'),
+    getSessionBrowserDbId: vi.fn(() => 'a0a2a2d2-0b87-4a18-83f2-2529882be2de'),
     loadIdentity: vi.fn(async () => identityStore.value),
     resolveStoredIdentity: vi.fn(async () => identityStore.value),
     persistUnlockedIdentity: vi.fn(async (_browserDbId, identity) => {
@@ -14,7 +14,7 @@ vi.mock('./identitySession.js', () => ({
     saveIdentity: vi.fn(async (identity) => {
         identityStore.value = identity;
     }),
-    resolveBrowserDbId: vi.fn(() => '01JABCDEF1234567890ABCDEFGH'),
+    resolveBrowserDbId: vi.fn(() => 'a0a2a2d2-0b87-4a18-83f2-2529882be2de'),
     setSessionBrowserDbId: vi.fn(),
     clearCachedIdentity: vi.fn(async () => {
         identityStore.value = null;
@@ -60,7 +60,7 @@ describe('identitySession integration via identity', () => {
             ok: true,
             json: async () => ({
                 status: 'ok',
-                browser_db_id: '01JABCDEF1234567890ABCDEFGH',
+                browser_db_id: 'a0a2a2d2-0b87-4a18-83f2-2529882be2de',
             }),
         }));
         vi.stubGlobal('fetch', fetchMock);
@@ -99,7 +99,7 @@ describe('identitySession integration via identity', () => {
                 ok: true,
                 json: async () => ({
                     status: 'ok',
-                    browser_db_id: '01JABCDEF1234567890ABCDEFGH',
+                    browser_db_id: 'a0a2a2d2-0b87-4a18-83f2-2529882be2de',
                 }),
             });
         vi.stubGlobal('fetch', fetchMock);
@@ -153,7 +153,7 @@ describe('identitySession integration via identity', () => {
                 ok: true,
                 json: async () => ({
                     status: 'ok',
-                    browser_db_id: '01JABCDEF1234567890ABCDEFGH',
+                    browser_db_id: 'a0a2a2d2-0b87-4a18-83f2-2529882be2de',
                 }),
             };
         });
@@ -185,7 +185,7 @@ describe('identitySession integration via identity', () => {
             ok: true,
             json: async () => ({
                 registered: true,
-                browser_db_id: '01JABCDEF1234567890ABCDEFGH',
+                browser_db_id: 'a0a2a2d2-0b87-4a18-83f2-2529882be2de',
                 fingerprint: generated.fingerprint,
             }),
         }));
@@ -213,7 +213,7 @@ describe('identitySession integration via identity', () => {
                     ok: true,
                     json: async () => ({
                         registered: true,
-                        browser_db_id: '01JABCDEF1234567890ABCDEFGH',
+                        browser_db_id: 'a0a2a2d2-0b87-4a18-83f2-2529882be2de',
                         fingerprint: 'existing-fingerprint',
                     }),
                 };
@@ -223,7 +223,7 @@ describe('identitySession integration via identity', () => {
                 ok: true,
                 json: async () => ({
                     status: 'ok',
-                    browser_db_id: '01JABCDEF1234567890ABCDEFGH',
+                    browser_db_id: 'a0a2a2d2-0b87-4a18-83f2-2529882be2de',
                 }),
             };
         });
@@ -251,7 +251,7 @@ describe('identitySession integration via identity', () => {
                     ok: true,
                     json: async () => ({
                         registered: true,
-                        browser_db_id: '01JABCDEF1234567890ABCDEFGH',
+                        browser_db_id: 'a0a2a2d2-0b87-4a18-83f2-2529882be2de',
                         fingerprint: 'different-fingerprint',
                     }),
                 };
@@ -261,7 +261,7 @@ describe('identitySession integration via identity', () => {
                 ok: true,
                 json: async () => ({
                     status: 'ok',
-                    browser_db_id: '01JABCDEF1234567890ABCDEFGH',
+                    browser_db_id: 'a0a2a2d2-0b87-4a18-83f2-2529882be2de',
                 }),
             };
         });

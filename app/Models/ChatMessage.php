@@ -10,13 +10,10 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Attributes\UseResource;
 use Illuminate\Database\Eloquent\Attributes\UseResourceCollection;
-use Illuminate\Database\Eloquent\Casts\AsBinary;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Support\BinaryCodec;
 use Illuminate\Support\Carbon;
-use Illuminate\Support\Str;
 
 /**
  * @property string $id
@@ -51,7 +48,6 @@ class ChatMessage extends Model
     {
         return [
             'created_at' => 'datetime',
-            'public_id' => AsBinary::uuid(),
             'payload' => 'encrypted',
             'is_viewed' => 'boolean',
         ];
@@ -73,21 +69,6 @@ class ChatMessage extends Model
     public function getRouteKeyName(): string
     {
         return 'public_id';
-    }
-
-    /**
-     * Retrieve the model for a bound value, encoding the public identifier
-     * to match the binary column it is stored in.
-     */
-    public function resolveRouteBindingQuery($query, $value, $field = null)
-    {
-        $field ??= $this->getRouteKeyName();
-
-        if ($field === 'public_id' && Str::isUuid($value)) {
-            $value = BinaryCodec::encode($value, 'uuid');
-        }
-
-        return parent::resolveRouteBindingQuery($query, $value, $field);
     }
 
     /**

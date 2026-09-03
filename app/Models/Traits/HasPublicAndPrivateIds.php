@@ -11,7 +11,7 @@ trait HasPublicAndPrivateIds
     public function setUniqueIds(): void
     {
         if (empty($this->{$this->getKeyName()})) {
-            $this->{$this->getKeyName()} = (string) Str::ulid();
+            $this->{$this->getKeyName()} = (string) Str::uuid7();
         }
 
         if (empty($this->public_id)) {

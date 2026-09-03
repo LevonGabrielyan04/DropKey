@@ -8,7 +8,7 @@ import {
 
 describe('keyStore', () => {
     it('builds a per-browser database name', () => {
-        expect(databaseNameForBrowserDbId('01JABCDEF1234567890ABCDEFGH')).toBe('passshare-01JABCDEF1234567890ABCDEFGH');
+        expect(databaseNameForBrowserDbId('a0a2a2d2-0b87-4a18-83f2-2529882be2de')).toBe('passshare-a0a2a2d2-0b87-4a18-83f2-2529882be2de');
     });
 
     it('detects legacy Argon2 identity blobs', () => {

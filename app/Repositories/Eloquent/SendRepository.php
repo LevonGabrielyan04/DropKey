@@ -8,7 +8,6 @@ use App\DTOs\SendData;
 use App\Models\Send;
 use App\Repositories\Interfaces\SendRepositoryInterface;
 use Illuminate\Database\Eloquent\Collection;
-use Illuminate\Support\BinaryCodec;
 use Illuminate\Support\Facades\DB;
 
 class SendRepository implements SendRepositoryInterface
@@ -19,8 +18,7 @@ class SendRepository implements SendRepositoryInterface
     {
         return $this->model
             ->with('authorizedUsers')
-            ->where('id', BinaryCodec::encode($id, 'ulid'))
-            ->first();
+            ->find($id);
     }
 
     /**
@@ -79,9 +77,7 @@ class SendRepository implements SendRepositoryInterface
 
     public function delete(string $id): bool
     {
-        $record = $this->model
-            ->where('id', BinaryCodec::encode($id, 'ulid'))
-            ->first();
+        $record = $this->model->find($id);
 
         if ($record === null) {
             return false;
@@ -118,7 +114,7 @@ class SendRepository implements SendRepositoryInterface
     public function userHasActiveAuthorizedAccess(string $userId, string $sendId): bool
     {
         return $this->model->query()
-            ->where('id', BinaryCodec::encode($sendId, 'ulid'))
+            ->whereKey($sendId)
             ->where('valid_to', '>=', now())
             ->whereHas('authorizedUsers', fn ($query) => $query->where('users.id', $userId))
             ->exists();

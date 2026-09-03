@@ -69,7 +69,7 @@ it('find queries the inner repository on a cache miss', function () {
 });
 
 it('find caches a missing send and does not query the inner repository again', function () {
-    $sendId = (string) Str::ulid();
+    $sendId = (string) Str::uuid7();
 
     [$repository, $innerRepository] = makeCachedRepository();
 
@@ -117,7 +117,7 @@ it('find uses the negative cache ttl for missing sends', function () {
     Carbon::setTestNow(now());
     config(['send.cache_ttl' => 60, 'send.negative_cache_ttl' => 5]);
 
-    $sendId = (string) Str::ulid();
+    $sendId = (string) Str::uuid7();
 
     [$repository, $innerRepository] = makeCachedRepository(cache: Cache::store('array'));
 
@@ -289,7 +289,7 @@ it('userHasActiveAuthorizedAccess caches the result from the inner repository', 
     config(['send.cache_ttl' => 60, 'send.negative_cache_ttl' => 5]);
 
     $userId = '42';
-    $sendId = (string) Str::ulid();
+    $sendId = (string) Str::uuid7();
 
     $send = SendFactory::make((int) $userId, ['id' => $sendId]);
     $send->valid_to = now()->addMinutes(30);
@@ -304,7 +304,7 @@ it('userHasActiveAuthorizedAccess caches the result from the inner repository', 
 });
 
 it('rememberLocked prevents duplicate inner repository calls for concurrent misses', function () {
-    $sendId = (string) Str::ulid();
+    $sendId = (string) Str::uuid7();
 
     [$repository, $innerRepository] = makeCachedRepository();
 

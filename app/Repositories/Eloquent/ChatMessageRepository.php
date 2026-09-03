@@ -11,7 +11,6 @@ use App\Models\User;
 use App\Repositories\Interfaces\ChatMessageRepositoryInterface;
 use App\Support\ChatMessageColumns;
 use Illuminate\Database\Eloquent\Collection;
-use Illuminate\Support\BinaryCodec;
 use Illuminate\Support\Str;
 use InvalidArgumentException;
 
@@ -56,7 +55,7 @@ class ChatMessageRepository implements ChatMessageRepositoryInterface
 
         if ($afterPublicId !== null && $afterPublicId !== '' && Str::isUuid($afterPublicId)) {
             $cursorId = $conversation->messages()
-                ->where('public_id', BinaryCodec::encode($afterPublicId, 'uuid'))
+                ->where('public_id', $afterPublicId)
                 ->value('id');
 
             if ($cursorId !== null) {

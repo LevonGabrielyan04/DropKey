@@ -3,9 +3,9 @@
 use App\Enums\TimePeriod;
 use App\Models\Conversation;
 use App\Models\User;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\BinaryCodec;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Tests\TestCase;
@@ -20,17 +20,15 @@ it('assigns a unique uuid v4 public key when creating a user', function () {
         ->and(Str::isUuid($user->public_key, version: 4))->toBeTrue();
 });
 
-it('stores user public keys as binary uuids in the database', function () {
+it('stores user public keys as uuid columns in the database', function () {
     $user = User::factory()->create();
 
     $rawPublicKey = DB::table('users')
         ->where('id', $user->id)
         ->value('public_key');
 
-    expect($rawPublicKey)
-        ->toBeString()
-        ->and(strlen($rawPublicKey))->toBe(16)
-        ->and(BinaryCodec::decode($rawPublicKey, 'uuid'))->toBe($user->public_key);
+    expect($rawPublicKey)->toBe($user->public_key)
+        ->and(Str::isUuid($rawPublicKey, version: 4))->toBeTrue();
 });
 
 it('assigns unique uuid identifiers when creating a conversation', function () {
@@ -45,7 +43,7 @@ it('assigns unique uuid identifiers when creating a conversation', function () {
         ->and(Str::isUuid($conversation->public_key, version: 4))->toBeTrue();
 });
 
-it('stores conversation public keys as binary uuids in the database', function () {
+it('stores conversation public keys as uuid columns in the database', function () {
     $alice = User::factory()->create();
     $bob = User::factory()->create();
     $conversation = createConversation($alice, $bob);
@@ -54,10 +52,8 @@ it('stores conversation public keys as binary uuids in the database', function (
         ->where('id', $conversation->id)
         ->value('public_key');
 
-    expect($rawPublicKey)
-        ->toBeString()
-        ->and(strlen($rawPublicKey))->toBe(16)
-        ->and(BinaryCodec::decode($rawPublicKey, 'uuid'))->toBe($conversation->public_key);
+    expect($rawPublicKey)->toBe($conversation->public_key)
+        ->and(Str::isUuid($rawPublicKey, version: 4))->toBeTrue();
 });
 
 it('resolves conversation route model bindings by public key', function () {
@@ -97,7 +93,8 @@ it('resolves user route model bindings by public key', function () {
 it('does not resolve user route model bindings by numeric id', function () {
     $user = User::factory()->create();
 
-    expect((new User)->resolveRouteBinding((string) $user->id))->toBeNull();
+    expect(fn () => (new User)->resolveRouteBinding((string) $user->id))
+        ->toThrow(ModelNotFoundException::class);
 });
 
 it('enforces unique public keys across users', function () {

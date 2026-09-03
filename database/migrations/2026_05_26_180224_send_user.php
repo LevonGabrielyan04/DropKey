@@ -9,10 +9,9 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('send_user', function (Blueprint $table) {
-            $table->binary('send_id', length: 16, fixed: true);
+            $table->foreignUuid('send_id')->constrained('sends')->cascadeOnDelete();
             $table->foreignId('user_id')->constrained()->cascadeOnDelete();
 
-            $table->foreign('send_id')->references('id')->on('sends')->cascadeOnDelete();
             $table->primary(['send_id', 'user_id']);
         });
     }
