@@ -45,6 +45,18 @@ class ChatController extends Controller
 
         $conversation = $this->chatMessages->findConversationBetweenUsers(auth()->user(), $user);
 
-        return view('chat.show', ChatShowData::from($user, $conversation)->toArray());
+        return view('chat.show', [
+            'recipient' => $user,
+            'conversation' => $conversation,
+        ]);
+    }
+
+    public function settings(User $user): View
+    {
+        abort_unless(auth()->id() !== $user->id, 404);
+
+        $conversation = $this->chatMessages->findConversationBetweenUsers(auth()->user(), $user);
+
+        return view('chat.settings', ChatShowData::from($user, $conversation)->toArray());
     }
 }

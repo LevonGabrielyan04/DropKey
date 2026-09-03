@@ -10,7 +10,6 @@ vi.mock('./cryptography/e2ee/session.js', () => ({
 }));
 
 import {
-    DEFAULT_AUTO_DELETE,
     applyMessageViewedReceipts,
     applyUnreadCountUpdate,
     formatMessageTime,
@@ -23,12 +22,6 @@ import {
     shouldRefreshInboxOnPageShow,
     syncUnreadCountsFromConversations,
 } from './e2eeChatSession.js';
-
-describe('DEFAULT_AUTO_DELETE', () => {
-    it('defaults to seven days', () => {
-        expect(DEFAULT_AUTO_DELETE).toBe('7 days');
-    });
-});
 
 describe('formatMessageTime', () => {
     it('formats message timestamps for display', () => {

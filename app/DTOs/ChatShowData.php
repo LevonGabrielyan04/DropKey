@@ -27,7 +27,7 @@ class ChatShowData
     ) {}
 
     /**
-     * Build view data for the chat show page.
+     * Build view data for the chat settings page.
      */
     public static function from(User $recipient, ?Conversation $conversation): self
     {
@@ -35,7 +35,7 @@ class ChatShowData
     }
 
     /**
-     * Convert the DTO into an array suitable for the chat show view.
+     * Convert the DTO into an array suitable for the chat settings view.
      *
      * @return array{recipient: User, conversation: Conversation|null, autoDelete: TimePeriod, timePeriods: list<TimePeriod>}
      */

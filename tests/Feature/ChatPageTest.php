@@ -57,15 +57,58 @@ it('renders the encrypted chat session shell for a recipient', function () {
         ->assertSee(':disabled="!canSendMessage"', false)
         ->assertSee('data-decryption-failed-message', false)
         ->assertSee(__('Unable to decrypt this message.'), false)
-        ->assertSee('id="auto-delete"', false)
-        ->assertSee('data-auto-delete="'.TimePeriod::SEVEN_DAYS->value.'"', false)
+        ->assertDontSee('id="auto-delete"', false)
+        ->assertDontSee('data-auto-delete=', false)
+        ->assertSee(route('chat.settings', $bob), false)
+        ->assertSee('aria-label="'.__('Chat settings').'"', false)
+        ->assertSee('aria-label="'.__('Inbox').'"', false)
         ->assertSee('message.decryptionError', false)
         ->assertSee('message.isMine', false)
         ->assertSee('x-show="message.isMine"', false)
         ->assertSee('message.isViewed', false)
         ->assertSee('formatMessageTime(message.createdAt)', false)
         ->assertSee(':datetime="message.createdAt"', false)
+        ->assertDontSee('${partnerFingerprint}', false)
+        ->assertDontSee(__('Partner fingerprint'))
+        ->assertDontSee(__('Auto-delete messages after'));
+});
+
+it('renders the chat settings page for a recipient', function () {
+    $alice = User::factory()->create();
+    $bob = User::factory()->create();
+
+    $this->actingAs($alice)
+        ->get(route('chat.settings', $bob))
+        ->assertSuccessful()
+        ->assertSee('x-data="e2eeChatSettings"', false)
+        ->assertSee('data-recipient-id="'.$bob->id.'"', false)
+        ->assertSee('data-local-user-id="'.$alice->id.'"', false)
+        ->assertSee(route('api.users.public-key.show', $bob), false)
+        ->assertSee(route('conversations.auto-delete.update', $bob), false)
+        ->assertSee('id="auto-delete"', false)
+        ->assertSee('data-auto-delete="'.TimePeriod::SEVEN_DAYS->value.'"', false)
+        ->assertSee($bob->name)
+        ->assertSee(__('Chat settings'))
+        ->assertSee(__('Partner fingerprint'))
+        ->assertSee(__('Auto-delete messages after'))
+        ->assertSee(__('Back to chat'))
+        ->assertSee(route('chat.show', $bob), false)
         ->assertDontSee('${partnerFingerprint}', false);
+});
+
+it('requires authentication to view chat settings', function () {
+    $bob = User::factory()->create();
+
+    $this->get(route('chat.settings', $bob))
+        ->assertRedirect(route('login'));
+});
+
+it('rejects chat settings when targeting yourself', function () {
+    $alice = User::factory()->create();
+
+    $this->actingAs($alice)
+        ->get(route('chat.settings', $alice))
+        ->assertNotFound();
 });
 
 it('exposes the conversation public key when a chat already exists', function () {

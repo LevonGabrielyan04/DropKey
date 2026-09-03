@@ -72,7 +72,7 @@ it('rejects auto delete updates when targeting yourself', function () {
         ->assertNotFound();
 });
 
-it('renders the auto delete dropdown on the chat page', function () {
+it('renders the auto delete dropdown on the chat settings page', function () {
     $alice = User::factory()->create();
     $bob = User::factory()->create();
     $conversation = createConversation($alice, $bob);
@@ -82,7 +82,7 @@ it('renders the auto delete dropdown on the chat page', function () {
         ->update(['auto_delete' => TimePeriod::ONE_DAY->value]);
 
     $this->actingAs($alice)
-        ->get(route('chat.show', $bob))
+        ->get(route('chat.settings', $bob))
         ->assertSuccessful()
         ->assertSee('id="auto-delete"', false)
         ->assertSee('data-auto-delete="'.TimePeriod::ONE_DAY->value.'"', false)

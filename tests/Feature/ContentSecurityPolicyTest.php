@@ -303,15 +303,20 @@ it('does not render csp-unsafe alpine template literals on chat pages', function
     ]);
 
     $chatShow = $this->actingAs($alice)->get(route('chat.show', $bob));
+    $chatSettings = $this->actingAs($alice)->get(route('chat.settings', $bob));
     $chatIndex = $this->actingAs($alice)->get(route('chat.index'));
 
     $chatShow->assertSuccessful();
+    $chatSettings->assertSuccessful();
     $chatIndex->assertSuccessful();
 
     expect($chatShow->getContent())
         ->not->toMatch('/x-(text|show|bind:[^=]+)="[^"]*`[^"]*"/')
-        ->toContain("x-text=\"'".__('Partner fingerprint').": ' + partnerFingerprint\"")
         ->toContain(':disabled="!canSendMessage"');
+
+    expect($chatSettings->getContent())
+        ->not->toMatch('/x-(text|show|bind:[^=]+)="[^"]*`[^"]*"/')
+        ->toContain('x-text="partnerFingerprint"');
 
     expect($chatIndex->getContent())
         ->not->toMatch('/x-(text|show|bind:[^=]+)="[^"]*`[^"]*"/')
