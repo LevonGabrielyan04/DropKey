@@ -191,13 +191,19 @@ it('shows a notifications tip when the user has no push subscription', function 
         ->assertSuccessful()
         ->assertSee(__('Enable notifications so you know when a new message arrives.'))
         ->assertSee(route('notifications.edit'), false)
-        ->assertSee(__('Notification settings'));
+        ->assertSee(__('Notification settings'))
+        ->assertSee(__('Dismiss'))
+        ->assertSee('x-data="notificationsTip"', false)
+        ->assertSee('data-storage-key="passshare.notifications-tip.dismissed.'.$alice->id.'"', false);
 
     $this->actingAs($alice)
         ->get(route('chat.show', $bob))
         ->assertSuccessful()
         ->assertSee(__('Enable notifications so you know when a new encrypted message arrives.'))
-        ->assertSee(route('notifications.edit'), false);
+        ->assertSee(route('notifications.edit'), false)
+        ->assertSee(__('Dismiss'))
+        ->assertSee('x-data="notificationsTip"', false)
+        ->assertSee('data-storage-key="passshare.notifications-tip.dismissed.'.$alice->id.'"', false);
 });
 
 it('hides the notifications tip when the user has a push subscription', function () {

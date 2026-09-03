@@ -398,4 +398,23 @@ document.addEventListener('alpine:init', () => {
             }
         },
     }));
+
+    Alpine.data('notificationsTip', () => ({
+        storageKey: '',
+        dismissed: false,
+
+        init() {
+            this.storageKey = this.$el.dataset.storageKey ?? '';
+            this.dismissed = this.storageKey !== ''
+                && localStorage.getItem(this.storageKey) === '1';
+        },
+
+        dismiss() {
+            if (this.storageKey !== '') {
+                localStorage.setItem(this.storageKey, '1');
+            }
+
+            this.dismissed = true;
+        },
+    }));
 });
