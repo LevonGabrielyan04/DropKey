@@ -248,6 +248,8 @@
 
         @include('partials.identity-key-overwrite-modal')
 
+        @include('partials.pwa-install-prompt')
+
         @include('partials.flux-scripts')
     </body>
 </html>

@@ -31,7 +31,25 @@ new #[Title('Notification settings')] class extends Component {
                 </flux:callout.text>
             </flux:callout>
 
-            <template x-if="! supported">
+            <template x-if="! supported && ios && ! installed">
+                <flux:callout icon="device-phone-mobile" color="amber">
+                    <flux:callout.heading>{{ __('Install the app for notifications') }}</flux:callout.heading>
+                    <flux:callout.text>
+                        {{ __('On iPhone and iPad, open Share, then Add to Home Screen. After you install :app, return here to enable push notifications.', ['app' => config('app.name')]) }}
+                    </flux:callout.text>
+                </flux:callout>
+            </template>
+
+            <template x-if="! supported && ios && installed">
+                <flux:callout icon="exclamation-triangle" color="amber">
+                    <flux:callout.heading>{{ __('Not supported') }}</flux:callout.heading>
+                    <flux:callout.text>
+                        {{ __('Push notifications on this installed app require iOS 16.4 or later.') }}
+                    </flux:callout.text>
+                </flux:callout>
+            </template>
+
+            <template x-if="! supported && ! ios">
                 <flux:callout icon="exclamation-triangle" color="amber">
                     <flux:callout.heading>{{ __('Not supported') }}</flux:callout.heading>
                     <flux:callout.text>

@@ -1,3 +1,5 @@
+import { isIosDevice, isRunningAsInstalledApp } from './pwaInstallPrompt.js';
+
 /**
  * Convert a URL-safe base64 VAPID public key into a Uint8Array.
  *
@@ -223,6 +225,8 @@ if (typeof document !== 'undefined') {
 
         Alpine.data('pushNotificationSettings', () => ({
             supported: false,
+            ios: false,
+            installed: false,
             enabled: false,
             permission: 'default',
             busy: false,
@@ -240,6 +244,8 @@ if (typeof document !== 'undefined') {
                     ?? document.body?.dataset?.csrfToken
                     ?? '';
 
+                this.ios = isIosDevice();
+                this.installed = isRunningAsInstalledApp();
                 this.supported = isPushNotificationSupported();
 
                 if (! this.supported) {

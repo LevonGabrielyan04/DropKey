@@ -20,6 +20,8 @@
 
         @include('partials.global-footer')
 
+        @include('partials.pwa-install-prompt')
+
         @persist('toast')
             <flux:toast.group>
                 <flux:toast />
