@@ -36,7 +36,7 @@ class R2UploadService implements R2UploadServiceInterface
         }
 
         $disk = Storage::disk($diskName);
-        $path = $this->generateObjectPath($data->user, $data->filename);
+        $path = $this->generateObjectPath($data->user);
         $expiresAt = now()->plus(minutes: $expiresInMinutes);
 
         return Cache::lock($this->capacityLockKey($data->user), 10)->block(5, function () use (
@@ -90,18 +90,12 @@ class R2UploadService implements R2UploadServiceInterface
         }
     }
 
-    private function generateObjectPath(User $user, string $filename): string
+    private function generateObjectPath(User $user): string
     {
-        $extension = pathinfo($filename, PATHINFO_EXTENSION);
-        $safeExtension = $extension !== ''
-            ? Str::lower(Str::substr($extension, 0, 20))
-            : 'bin';
-
         return sprintf(
-            '%s/%s.%s',
+            '%s/%s',
             $this->storage->userPrefix($user),
             (string) Str::ulid(),
-            $safeExtension,
         );
     }
 

@@ -34,7 +34,7 @@ it('creates a temporary download link for an owned object', function () {
     });
 
     $user = User::factory()->create();
-    $path = 'uploads/'.$user->id.'/'.Str::ulid().'.bin';
+    $path = 'uploads/'.$user->id.'/'.Str::ulid();
     Storage::disk('r2')->put($path, 'ciphertext');
 
     $link = app(CreateFileDownloadLinkAction::class)->execute(new CreateFileDownloadLinkData(
@@ -54,7 +54,7 @@ it('allows a conversation partner to download an attachment', function () {
     $bob = User::factory()->create();
     createConversation($alice, $bob);
 
-    $path = 'uploads/'.$alice->id.'/'.Str::ulid().'.txt';
+    $path = 'uploads/'.$alice->id.'/'.Str::ulid();
     Storage::disk('r2')->put($path, 'ciphertext');
 
     $link = app(CreateFileDownloadLinkAction::class)->execute(new CreateFileDownloadLinkData(
@@ -70,7 +70,7 @@ it('rejects download requests from users outside the conversation', function () 
 
     $alice = User::factory()->create();
     $stranger = User::factory()->create();
-    $path = 'uploads/'.$alice->id.'/'.Str::ulid().'.bin';
+    $path = 'uploads/'.$alice->id.'/'.Str::ulid();
     Storage::disk('r2')->put($path, 'ciphertext');
 
     app(CreateFileDownloadLinkAction::class)->execute(new CreateFileDownloadLinkData(
@@ -83,7 +83,7 @@ it('rejects download requests for missing objects', function () {
     Storage::disk('r2')->buildTemporaryUrlsUsing(fn () => 'https://r2.example/unused');
 
     $user = User::factory()->create();
-    $path = 'uploads/'.$user->id.'/'.Str::ulid().'.bin';
+    $path = 'uploads/'.$user->id.'/'.Str::ulid();
 
     app(CreateFileDownloadLinkAction::class)->execute(new CreateFileDownloadLinkData(
         user: $user,

@@ -26,7 +26,7 @@ it('creates an r2 download link for the uploader', function () {
     });
 
     $user = User::factory()->create();
-    $path = 'uploads/'.$user->id.'/'.Str::ulid().'.bin';
+    $path = 'uploads/'.$user->id.'/'.Str::ulid();
 
     Storage::disk('r2')->put($path, 'ciphertext');
 
@@ -47,10 +47,25 @@ it('creates an r2 download link for a conversation partner', function () {
     $bob = User::factory()->create();
     createConversation($alice, $bob);
 
-    $path = 'uploads/'.$alice->id.'/'.Str::ulid().'.bin';
+    $path = 'uploads/'.$alice->id.'/'.Str::ulid();
     Storage::disk('r2')->put($path, 'ciphertext');
 
     $this->actingAs($bob)
+        ->postJson(route('api.uploads.download'), ['path' => $path])
+        ->assertSuccessful()
+        ->assertJsonPath('path', $path);
+});
+
+it('creates an r2 download link for a legacy object path with an extension', function () {
+    Storage::disk('r2')->buildTemporaryUrlsUsing(function (string $path) {
+        return 'https://r2.example/presigned-get?path='.urlencode($path);
+    });
+
+    $user = User::factory()->create();
+    $path = 'uploads/'.$user->id.'/'.Str::ulid().'.bin';
+    Storage::disk('r2')->put($path, 'ciphertext');
+
+    $this->actingAs($user)
         ->postJson(route('api.uploads.download'), ['path' => $path])
         ->assertSuccessful()
         ->assertJsonPath('path', $path);
@@ -61,7 +76,7 @@ it('forbids download when the requester has no conversation with the uploader', 
 
     $alice = User::factory()->create();
     $stranger = User::factory()->create();
-    $path = 'uploads/'.$alice->id.'/'.Str::ulid().'.bin';
+    $path = 'uploads/'.$alice->id.'/'.Str::ulid();
 
     Storage::disk('r2')->put($path, 'ciphertext');
 
@@ -74,7 +89,7 @@ it('returns not found when the object is missing', function () {
     Storage::disk('r2')->buildTemporaryUrlsUsing(fn () => 'https://r2.example/unused');
 
     $user = User::factory()->create();
-    $path = 'uploads/'.$user->id.'/'.Str::ulid().'.bin';
+    $path = 'uploads/'.$user->id.'/'.Str::ulid();
 
     $this->actingAs($user)
         ->postJson(route('api.uploads.download'), ['path' => $path])
@@ -89,14 +104,17 @@ it('rejects invalid download paths', function (string $path) {
         ->assertUnprocessable()
         ->assertJsonValidationErrors(['path']);
 })->with([
+    '../uploads/1/01ARZ3NDEKTSV4RRFFQ69G5FAV',
     '../uploads/1/01ARZ3NDEKTSV4RRFFQ69G5FAV.bin',
+    'uploads/1/not-a-ulid',
     'uploads/1/not-a-ulid.bin',
     'uploads/1/01ARZ3NDEKTSV4RRFFQ69G5FAV.pdf.exe',
+    'other/1/01ARZ3NDEKTSV4RRFFQ69G5FAV',
     'other/1/01ARZ3NDEKTSV4RRFFQ69G5FAV.bin',
 ]);
 
 it('requires authentication to request a download link', function () {
     $this->postJson(route('api.uploads.download'), [
-        'path' => 'uploads/1/'.Str::ulid().'.bin',
+        'path' => 'uploads/1/'.Str::ulid(),
     ])->assertUnauthorized();
 });

@@ -95,7 +95,6 @@ export async function prepareEncryptedUpload(file, conversationKey) {
  * @param {{
  *   uploadsUrl: string,
  *   csrfToken: string,
- *   filename: string,
  *   contentType: string,
  *   size: number,
  * }} options
@@ -107,7 +106,7 @@ export async function prepareEncryptedUpload(file, conversationKey) {
  *   expires_in: number,
  * }>}
  */
-export async function requestUploadLink({ uploadsUrl, csrfToken, filename, contentType, size }) {
+export async function requestUploadLink({ uploadsUrl, csrfToken, contentType, size }) {
     const response = await fetch(uploadsUrl, {
         method: 'POST',
         headers: {
@@ -117,7 +116,6 @@ export async function requestUploadLink({ uploadsUrl, csrfToken, filename, conte
         },
         credentials: 'same-origin',
         body: JSON.stringify({
-            filename,
             content_type: contentType,
             size,
         }),

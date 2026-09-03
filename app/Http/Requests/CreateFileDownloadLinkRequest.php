@@ -13,9 +13,12 @@ use Illuminate\Foundation\Http\FormRequest;
 class CreateFileDownloadLinkRequest extends FormRequest
 {
     /**
-     * Object keys created by chat attachment uploads (uploads/{userId}/{ulid}.{ext}).
+     * Object keys for chat attachment uploads.
+     *
+     * New uploads use uploads/{userId}/{ulid}. An optional .{ext} suffix is
+     * still accepted so legacy objects remain downloadable.
      */
-    public const PATH_PATTERN = '/^uploads\/\d+\/[0-9A-HJKMNP-TV-Z]{26}\.[a-z0-9]{1,20}$/i';
+    public const PATH_PATTERN = '/^uploads\/\d+\/[0-9A-HJKMNP-TV-Z]{26}(?:\.[a-z0-9]{1,20})?$/i';
 
     /**
      * Determine if the user is authorized to make this request.

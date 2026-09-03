@@ -47,14 +47,14 @@ it('creates a temporary upload link with content length capped by the requested 
 
     $link = $service->createUploadLink(new CreateFileUploadLinkData(
         user: $user,
-        filename: 'secret.pdf',
         contentType: 'application/pdf',
         size: 1_048_576,
     ));
 
     expect($link->url)->toBe('https://r2.example/upload?signature=test')
         ->and($link->path)->toStartWith('uploads/42/')
-        ->and($link->path)->toEndWith('.pdf')
+        ->and($link->path)->toMatch('/^uploads\/42\/[0-9A-HJKMNP-TV-Z]{26}$/i')
+        ->and($link->path)->not->toContain('.')
         ->and($link->maxFileBytes)->toBe(10 * 1024 * 1024)
         ->and($link->expiresInSeconds)->toBe(300)
         ->and($capturedOptions)->toMatchArray([
@@ -70,7 +70,6 @@ it('rejects files larger than the configured maximum before creating a link', fu
 
     $service->createUploadLink(new CreateFileUploadLinkData(
         user: $user,
-        filename: 'too-large.bin',
         contentType: 'application/octet-stream',
         size: (10 * 1024 * 1024) + 1,
     ));
@@ -89,7 +88,6 @@ it('refuses to create a link when the user would exceed their storage quota', fu
 
     $service->createUploadLink(new CreateFileUploadLinkData(
         user: $user,
-        filename: 'another.bin',
         contentType: 'application/octet-stream',
         size: 20,
     ));
@@ -131,14 +129,12 @@ it('reserves pending bytes so concurrent upload links cannot bypass the quota', 
 
     $service->createUploadLink(new CreateFileUploadLinkData(
         user: $user,
-        filename: 'first.bin',
         contentType: 'application/octet-stream',
         size: 10,
     ));
 
     expect(fn () => $service->createUploadLink(new CreateFileUploadLinkData(
         user: $user,
-        filename: 'second.bin',
         contentType: 'application/octet-stream',
         size: 10,
     )))->toThrow(CloudStorageCapacityExceededException::class);

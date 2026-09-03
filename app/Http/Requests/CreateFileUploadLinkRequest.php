@@ -9,7 +9,7 @@ use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
 /**
- * @method array{filename: string, content_type: string, size: int} validated()
+ * @method array{content_type: string, size: int} validated()
  */
 class CreateFileUploadLinkRequest extends FormRequest
 {
@@ -43,7 +43,6 @@ class CreateFileUploadLinkRequest extends FormRequest
         $maxFileBytes = (int) config('filesystems.upload.max_file_bytes');
 
         return [
-            'filename' => ['required', 'string', 'max:255'],
             'content_type' => ['required', 'string', Rule::in(self::ALLOWED_CONTENT_TYPES)],
             'size' => ['required', 'integer', 'min:1', 'max:'.$maxFileBytes],
         ];

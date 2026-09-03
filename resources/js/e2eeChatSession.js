@@ -683,7 +683,6 @@ document.addEventListener('alpine:init', () => {
                     const link = await requestUploadLink({
                         uploadsUrl: this.uploadsUrl,
                         csrfToken: this.csrfToken,
-                        filename: file.name,
                         contentType: encrypted.uploadContentType,
                         size: encrypted.uploadSize,
                     });

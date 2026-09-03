@@ -237,7 +237,7 @@ describe('requestUploadLink and uploadFileToLink', () => {
             json: async () => ({
                 url: 'https://r2.example/upload',
                 headers: { 'Content-Type': [ENCRYPTED_UPLOAD_CONTENT_TYPE] },
-                path: 'uploads/1/hello.txt',
+                path: 'uploads/1/01ARZ3NDEKTSV4RRFFQ69G5FAV',
                 max_file_bytes: 10_000_000,
                 expires_in: 300,
             }),
@@ -248,7 +248,6 @@ describe('requestUploadLink and uploadFileToLink', () => {
         const link = await requestUploadLink({
             uploadsUrl: '/api/uploads',
             csrfToken: 'token',
-            filename: 'hello.txt',
             contentType: ENCRYPTED_UPLOAD_CONTENT_TYPE,
             size: encryptedUploadSize(5),
         });
@@ -262,12 +261,11 @@ describe('requestUploadLink and uploadFileToLink', () => {
             },
             credentials: 'same-origin',
             body: JSON.stringify({
-                filename: 'hello.txt',
                 content_type: ENCRYPTED_UPLOAD_CONTENT_TYPE,
                 size: encryptedUploadSize(5),
             }),
         });
-        expect(link.path).toBe('uploads/1/hello.txt');
+        expect(link.path).toBe('uploads/1/01ARZ3NDEKTSV4RRFFQ69G5FAV');
     });
 
     it('surfaces storage capacity errors', async () => {
@@ -279,7 +277,6 @@ describe('requestUploadLink and uploadFileToLink', () => {
         await expect(requestUploadLink({
             uploadsUrl: '/api/uploads',
             csrfToken: 'token',
-            filename: 'hello.txt',
             contentType: ENCRYPTED_UPLOAD_CONTENT_TYPE,
             size: 21,
         })).rejects.toThrow(/capacity/i);

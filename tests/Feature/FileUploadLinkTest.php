@@ -32,9 +32,8 @@ it('creates an r2 upload link for authenticated users', function () {
 
     $user = User::factory()->create();
 
-    $this->actingAs($user)
+    $response = $this->actingAs($user)
         ->postJson(route('api.uploads.store'), [
-            'filename' => 'notes.txt',
             'content_type' => 'application/octet-stream',
             'size' => 2048,
         ])
@@ -51,6 +50,8 @@ it('creates an r2 upload link for authenticated users', function () {
             'max_file_bytes',
             'expires_in',
         ]);
+
+    expect($response->json('path'))->toMatch('/^uploads\/'.$user->id.'\/[0-9A-HJKMNP-TV-Z]{26}$/i');
 });
 
 it('rejects content types outside the encrypted upload allowlist', function (string $contentType) {
@@ -58,7 +59,6 @@ it('rejects content types outside the encrypted upload allowlist', function (str
 
     $this->actingAs($user)
         ->postJson(route('api.uploads.store'), [
-            'filename' => 'payload.bin',
             'content_type' => $contentType,
             'size' => 100,
         ])
@@ -77,7 +77,6 @@ it('validates the maximum upload size on the request', function () {
 
     $this->actingAs($user)
         ->postJson(route('api.uploads.store'), [
-            'filename' => 'huge.bin',
             'content_type' => 'application/octet-stream',
             'size' => (10 * 1024 * 1024) + 1,
         ])
@@ -102,7 +101,6 @@ it('returns insufficient storage when the user is at capacity', function () {
 
     $this->actingAs($user)
         ->postJson(route('api.uploads.store'), [
-            'filename' => 'overflow.bin',
             'content_type' => 'application/octet-stream',
             'size' => 1,
         ])
@@ -128,7 +126,6 @@ it('does not count another users uploads toward the storage limit', function () 
 
     $this->actingAs($user)
         ->postJson(route('api.uploads.store'), [
-            'filename' => 'notes.txt',
             'content_type' => 'application/octet-stream',
             'size' => 20,
         ])
@@ -137,7 +134,6 @@ it('does not count another users uploads toward the storage limit', function () 
 
 it('requires authentication to request an upload link', function () {
     $this->postJson(route('api.uploads.store'), [
-        'filename' => 'notes.txt',
         'content_type' => 'application/octet-stream',
         'size' => 100,
     ])->assertUnauthorized();
@@ -160,7 +156,6 @@ it('rejects a second upload link that would exceed quota via pending reservation
 
     $this->actingAs($user)
         ->postJson(route('api.uploads.store'), [
-            'filename' => 'first.bin',
             'content_type' => 'application/octet-stream',
             'size' => 10,
         ])
@@ -168,7 +163,6 @@ it('rejects a second upload link that would exceed quota via pending reservation
 
     $this->actingAs($user)
         ->postJson(route('api.uploads.store'), [
-            'filename' => 'second.bin',
             'content_type' => 'application/octet-stream',
             'size' => 10,
         ])
