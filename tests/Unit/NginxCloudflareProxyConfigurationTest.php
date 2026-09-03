@@ -107,7 +107,7 @@ test('docker compose does not publish app port in base stack', function () {
 
     expect($compose)
         ->not->toContain('ports:')
-        ->toContain('cloudflare/cloudflared:2026.8.2')
+        ->toContain('cloudflare/cloudflared:2026.8.3')
         ->toContain('profiles:')
         ->toContain('- tunnel');
 });
