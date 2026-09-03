@@ -181,11 +181,11 @@ describe('buildAttachmentMetadata', () => {
     it('builds metadata from a browser file, storage path, and encryption iv', () => {
         const file = new File(['hello'], 'hello.txt', { type: 'text/plain' });
 
-        expect(buildAttachmentMetadata(file, 'uploads/9/ulid.txt', {
+        expect(buildAttachmentMetadata(file, 'uploads/9/01a06663-eb69-72ac-b7af-7053bf13f690.txt', {
             iv: 'CCCCCCCCCCCCCCCC',
             v: 1,
         })).toEqual({
-            path: 'uploads/9/ulid.txt',
+            path: 'uploads/9/01a06663-eb69-72ac-b7af-7053bf13f690.txt',
             name: 'hello.txt',
             content_type: 'text/plain',
             size: 5,
@@ -197,7 +197,7 @@ describe('buildAttachmentMetadata', () => {
     it('falls back to octet-stream when the browser omits a type', () => {
         const file = new File(['abc'], 'mystery.bin');
 
-        expect(buildAttachmentMetadata(file, 'uploads/9/ulid.bin', {
+        expect(buildAttachmentMetadata(file, 'uploads/9/01a06663-eb69-72ac-b7af-7053bf13f690.bin', {
             iv: 'DDDDDDDDDDDDDDDD',
         }).content_type).toBe('application/octet-stream');
     });
@@ -237,7 +237,7 @@ describe('requestUploadLink and uploadFileToLink', () => {
             json: async () => ({
                 url: 'https://r2.example/upload',
                 headers: { 'Content-Type': [ENCRYPTED_UPLOAD_CONTENT_TYPE] },
-                path: 'uploads/1/01ARZ3NDEKTSV4RRFFQ69G5FAV',
+                path: 'uploads/1/01a06663-eb69-72ac-b7af-7053bf13f690',
                 max_file_bytes: 10_000_000,
                 expires_in: 300,
             }),
@@ -265,7 +265,7 @@ describe('requestUploadLink and uploadFileToLink', () => {
                 size: encryptedUploadSize(5),
             }),
         });
-        expect(link.path).toBe('uploads/1/01ARZ3NDEKTSV4RRFFQ69G5FAV');
+        expect(link.path).toBe('uploads/1/01a06663-eb69-72ac-b7af-7053bf13f690');
     });
 
     it('surfaces storage capacity errors', async () => {
@@ -319,7 +319,7 @@ describe('requestDownloadLink and downloadAndDecryptAttachment', () => {
             status: 200,
             json: async () => ({
                 url: 'https://r2.example/download',
-                path: 'uploads/1/01ARZ3NDEKTSV4RRFFQ69G5FAV.bin',
+                path: 'uploads/1/01a06663-eb69-72ac-b7af-7053bf13f690.bin',
                 expires_in: 300,
             }),
         });
@@ -329,7 +329,7 @@ describe('requestDownloadLink and downloadAndDecryptAttachment', () => {
         const link = await requestDownloadLink({
             downloadsUrl: '/api/uploads/download',
             csrfToken: 'token',
-            path: 'uploads/1/01ARZ3NDEKTSV4RRFFQ69G5FAV.bin',
+            path: 'uploads/1/01a06663-eb69-72ac-b7af-7053bf13f690.bin',
         });
 
         expect(fetchMock).toHaveBeenCalledWith('/api/uploads/download', {
@@ -341,7 +341,7 @@ describe('requestDownloadLink and downloadAndDecryptAttachment', () => {
             },
             credentials: 'same-origin',
             body: JSON.stringify({
-                path: 'uploads/1/01ARZ3NDEKTSV4RRFFQ69G5FAV.bin',
+                path: 'uploads/1/01a06663-eb69-72ac-b7af-7053bf13f690.bin',
             }),
         });
         expect(link.url).toBe('https://r2.example/download');
@@ -363,7 +363,7 @@ describe('requestDownloadLink and downloadAndDecryptAttachment', () => {
                 status: 200,
                 json: async () => ({
                     url: 'https://r2.example/download',
-                    path: 'uploads/1/01ARZ3NDEKTSV4RRFFQ69G5FAV.txt',
+                    path: 'uploads/1/01a06663-eb69-72ac-b7af-7053bf13f690.txt',
                     expires_in: 300,
                 }),
             })
@@ -375,7 +375,7 @@ describe('requestDownloadLink and downloadAndDecryptAttachment', () => {
 
         await downloadAndDecryptAttachment({
             attachment: {
-                path: 'uploads/1/01ARZ3NDEKTSV4RRFFQ69G5FAV.txt',
+                path: 'uploads/1/01a06663-eb69-72ac-b7af-7053bf13f690.txt',
                 name: 'notes.txt',
                 content_type: 'text/plain',
                 size: 11,
@@ -405,7 +405,7 @@ describe('requestDownloadLink and downloadAndDecryptAttachment', () => {
         await expect(requestDownloadLink({
             downloadsUrl: '/api/uploads/download',
             csrfToken: 'token',
-            path: 'uploads/1/01ARZ3NDEKTSV4RRFFQ69G5FAV.bin',
+            path: 'uploads/1/01a06663-eb69-72ac-b7af-7053bf13f690.bin',
         })).rejects.toThrow(/authorized/i);
     });
 });

@@ -53,7 +53,7 @@ it('creates a temporary upload link with content length capped by the requested 
 
     expect($link->url)->toBe('https://r2.example/upload?signature=test')
         ->and($link->path)->toStartWith('uploads/42/')
-        ->and($link->path)->toMatch('/^uploads\/42\/[0-9A-HJKMNP-TV-Z]{26}$/i')
+        ->and($link->path)->toMatch('/^uploads\/42\/[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i')
         ->and($link->path)->not->toContain('.')
         ->and($link->maxFileBytes)->toBe(10 * 1024 * 1024)
         ->and($link->expiresInSeconds)->toBe(300)

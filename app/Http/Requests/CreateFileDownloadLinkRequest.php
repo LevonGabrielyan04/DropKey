@@ -15,10 +15,10 @@ class CreateFileDownloadLinkRequest extends FormRequest
     /**
      * Object keys for chat attachment uploads.
      *
-     * New uploads use uploads/{userId}/{ulid}. An optional .{ext} suffix is
-     * still accepted so legacy objects remain downloadable.
+     * New uploads use uploads/{userId}/{uuidv7}. Legacy ULID keys (with or
+     * without a .{ext} suffix) remain accepted so older objects stay downloadable.
      */
-    public const PATH_PATTERN = '/^uploads\/\d+\/[0-9A-HJKMNP-TV-Z]{26}(?:\.[a-z0-9]{1,20})?$/i';
+    public const PATH_PATTERN = '/^uploads\/\d+\/(?:[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}|[0-9A-HJKMNP-TV-Z]{26})(?:\.[a-z0-9]{1,20})?$/i';
 
     /**
      * Determine if the user is authorized to make this request.

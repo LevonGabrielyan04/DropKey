@@ -95,7 +95,7 @@ class R2UploadService implements R2UploadServiceInterface
         return sprintf(
             '%s/%s',
             $this->storage->userPrefix($user),
-            (string) Str::ulid(),
+            (string) Str::uuid7(),
         );
     }
 

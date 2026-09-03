@@ -51,7 +51,7 @@ it('creates an r2 upload link for authenticated users', function () {
             'expires_in',
         ]);
 
-    expect($response->json('path'))->toMatch('/^uploads\/'.$user->id.'\/[0-9A-HJKMNP-TV-Z]{26}$/i');
+    expect($response->json('path'))->toMatch('/^uploads\/'.$user->id.'\/[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i');
 });
 
 it('rejects content types outside the encrypted upload allowlist', function (string $contentType) {
