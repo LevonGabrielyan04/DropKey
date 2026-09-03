@@ -31,9 +31,8 @@ it('links the web app manifest from the landing page', function () {
         ->assertSee(route('manifest'), false)
         ->assertSee('name="theme-color"', false)
         ->assertSee('content="#09090b"', false)
-        ->assertSee('id="pwa-install-prompt"', false)
-        ->assertSee('data-pwa-install', false)
-        ->assertSee('data-pwa-dismiss', false);
+        ->assertDontSee('id="pwa-install-prompt"', false)
+        ->assertDontSee('data-pwa-install', false);
 });
 
 it('links the web app manifest from authenticated app pages', function () {
@@ -44,12 +43,12 @@ it('links the web app manifest from authenticated app pages', function () {
         ->assertSuccessful()
         ->assertSee('rel="manifest"', false)
         ->assertSee(route('manifest'), false)
-        ->assertSee('id="pwa-install-prompt"', false);
+        ->assertDontSee('id="pwa-install-prompt"', false);
 });
 
-it('includes the install offer on auth pages', function () {
+it('does not show an install offer on auth pages', function () {
     $this->get(route('login'))
         ->assertSuccessful()
-        ->assertSee('id="pwa-install-prompt"', false)
-        ->assertSee(__('Install :app', ['app' => config('app.name')]), false);
+        ->assertDontSee('id="pwa-install-prompt"', false)
+        ->assertDontSee(__('Install :app', ['app' => config('app.name')]), false);
 });

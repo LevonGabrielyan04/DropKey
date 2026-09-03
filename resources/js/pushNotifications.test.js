@@ -1,8 +1,10 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
     disablePushNotifications,
     enablePushNotifications,
+    isIosDevice,
     isPushNotificationSupported,
+    isRunningAsInstalledApp,
     serializePushSubscription,
     urlBase64ToUint8Array,
 } from './pushNotifications.js';
@@ -60,6 +62,44 @@ describe('isPushNotificationSupported', () => {
         vi.stubGlobal('navigator', { serviceWorker: {} });
 
         expect(isPushNotificationSupported()).toBe(false);
+    });
+});
+
+describe('isRunningAsInstalledApp', () => {
+    afterEach(() => {
+        vi.restoreAllMocks();
+    });
+
+    it('detects standalone display mode', () => {
+        const windowLike = {
+            matchMedia: vi.fn((query) => ({
+                matches: query === '(display-mode: standalone)',
+            })),
+        };
+
+        expect(isRunningAsInstalledApp(windowLike, {})).toBe(true);
+    });
+
+    it('detects iOS navigator.standalone', () => {
+        const windowLike = {
+            matchMedia: vi.fn(() => ({ matches: false })),
+        };
+
+        expect(isRunningAsInstalledApp(windowLike, { standalone: true })).toBe(true);
+    });
+});
+
+describe('isIosDevice', () => {
+    it('detects iPhone user agents', () => {
+        expect(isIosDevice({ userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0)' })).toBe(true);
+    });
+
+    it('detects iPadOS desktop UA with touch points', () => {
+        expect(isIosDevice({
+            userAgent: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)',
+            platform: 'MacIntel',
+            maxTouchPoints: 5,
+        })).toBe(true);
     });
 });
 

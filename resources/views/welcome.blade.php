@@ -569,7 +569,5 @@
                 </div>
             </div>
         </footer>
-
-        @include('partials.pwa-install-prompt')
     </body>
 </html>

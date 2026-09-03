@@ -1,5 +1,3 @@
-import './pwaInstallPrompt.js';
-
 /**
  * Register the shared service worker used for PWA installability and push.
  *

@@ -1,5 +1,3 @@
-import { isIosDevice, isRunningAsInstalledApp } from './pwaInstallPrompt.js';
-
 /**
  * Convert a URL-safe base64 VAPID public key into a Uint8Array.
  *
@@ -19,6 +17,41 @@ export function urlBase64ToUint8Array(base64String) {
     }
 
     return outputArray;
+}
+
+/**
+ * @param {Window | undefined} windowLike
+ * @param {Navigator | undefined} navigatorLike
+ * @returns {boolean}
+ */
+export function isRunningAsInstalledApp(
+    windowLike = globalThis.window,
+    navigatorLike = globalThis.navigator,
+) {
+    if (! windowLike) {
+        return false;
+    }
+
+    if (windowLike.matchMedia?.('(display-mode: standalone)')?.matches) {
+        return true;
+    }
+
+    if (windowLike.matchMedia?.('(display-mode: minimal-ui)')?.matches) {
+        return true;
+    }
+
+    return Boolean(navigatorLike && 'standalone' in navigatorLike && navigatorLike.standalone);
+}
+
+/**
+ * @param {Navigator | undefined} navigatorLike
+ * @returns {boolean}
+ */
+export function isIosDevice(navigatorLike = globalThis.navigator) {
+    const userAgent = navigatorLike?.userAgent ?? '';
+
+    return /iPad|iPhone|iPod/.test(userAgent)
+        || (navigatorLike?.platform === 'MacIntel' && (navigatorLike?.maxTouchPoints ?? 0) > 1);
 }
 
 /**
