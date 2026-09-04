@@ -6,7 +6,7 @@ import {
     hasPartnerSessionChanged,
     redecryptStoredMessages,
     resolveIncomingMessageContent,
-} from './e2eeChatSession.js';
+} from './e2ee/messageContent.js';
 
 /**
  * @returns {Promise<CryptoKeyPair>}

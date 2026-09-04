@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const decryptChatMessage = vi.hoisted(() => vi.fn());
 
-vi.mock('./cryptography/e2ee/session.js', () => ({
+vi.mock('../cryptography/e2ee/session.js', () => ({
     decryptChatMessage,
     encryptChatMessage: vi.fn(),
     establishSession: vi.fn(),
@@ -10,183 +10,18 @@ vi.mock('./cryptography/e2ee/session.js', () => ({
 }));
 
 import {
-    applyMessageViewedReceipts,
-    applyUnreadCountUpdate,
     formatMessageTime,
-    formatUnreadMessagesLabel,
     hasPartnerSessionChanged,
-    normalizeConversationsPayload,
     redecryptStoredMessages,
     resolveChatMessageContent,
     resolveIncomingMessageContent,
-    shouldRefreshInboxOnPageShow,
-    shouldResumeChatSessionOnVisibility,
-    syncUnreadCountsFromConversations,
-} from './e2eeChatSession.js';
+} from './messageContent.js';
 
 describe('formatMessageTime', () => {
     it('formats message timestamps for display', () => {
         expect(formatMessageTime('2026-07-02T18:30:00Z', 'America/New_York', 'en-US'))
             .toBe('Jul 2, 2026 2:30 PM');
         expect(formatMessageTime('')).toBe('');
-    });
-});
-
-describe('applyMessageViewedReceipts', () => {
-    it('marks matching messages as viewed', () => {
-        const messages = [
-            { publicId: 'msg-1', isViewed: false },
-            { publicId: 'msg-2', isViewed: false },
-            { publicId: 'msg-3', isViewed: false },
-        ];
-
-        applyMessageViewedReceipts(messages, ['msg-1', 'msg-3']);
-
-        expect(messages).toEqual([
-            { publicId: 'msg-1', isViewed: true },
-            { publicId: 'msg-2', isViewed: false },
-            { publicId: 'msg-3', isViewed: true },
-        ]);
-    });
-
-    it('ignores empty or invalid public id payloads', () => {
-        const messages = [{ publicId: 'msg-1', isViewed: false }];
-
-        applyMessageViewedReceipts(messages, []);
-        applyMessageViewedReceipts(messages, null);
-
-        expect(messages[0].isViewed).toBe(false);
-    });
-});
-
-describe('applyUnreadCountUpdate', () => {
-    it('updates the unread count for a conversation', () => {
-        const unreadCounts = { 'conv-1': 1 };
-
-        applyUnreadCountUpdate(unreadCounts, {
-            conversation_public_key: 'conv-1',
-            unread_messages_count: 3,
-        });
-
-        expect(unreadCounts).toEqual({ 'conv-1': 3 });
-    });
-
-    it('adds a count for conversations that are not yet tracked', () => {
-        const unreadCounts = {};
-
-        applyUnreadCountUpdate(unreadCounts, {
-            conversation_public_key: 'conv-2',
-            unread_messages_count: 1,
-        });
-
-        expect(unreadCounts).toEqual({ 'conv-2': 1 });
-    });
-
-    it('ignores invalid payloads', () => {
-        const unreadCounts = { 'conv-1': 2 };
-
-        applyUnreadCountUpdate(unreadCounts, {
-            conversation_public_key: '',
-            unread_messages_count: 5,
-        });
-        applyUnreadCountUpdate(unreadCounts, {
-            conversation_public_key: 'conv-1',
-            unread_messages_count: -1,
-        });
-        applyUnreadCountUpdate(unreadCounts, {
-            conversation_public_key: 'conv-1',
-            unread_messages_count: '2',
-        });
-        applyUnreadCountUpdate(unreadCounts, null);
-
-        expect(unreadCounts).toEqual({ 'conv-1': 2 });
-    });
-});
-
-describe('formatUnreadMessagesLabel', () => {
-    it('formats singular and plural unread labels', () => {
-        expect(formatUnreadMessagesLabel(1, ':count unread message', ':count unread messages'))
-            .toBe('1 unread message');
-        expect(formatUnreadMessagesLabel(2, ':count unread message', ':count unread messages'))
-            .toBe('2 unread messages');
-    });
-});
-
-describe('normalizeConversationsPayload', () => {
-    it('normalizes wrapped conversation payloads', () => {
-        expect(normalizeConversationsPayload({
-            conversations: [
-                {
-                    public_key: 'conv-1',
-                    unread_messages_count: 2,
-                    partner: { name: 'Bob', url: '/chat/bob' },
-                    last_message_at: '2026-07-02T18:30:00Z',
-                },
-                {
-                    public_key: '',
-                    partner: { name: 'Skip', url: '/chat/skip' },
-                },
-            ],
-        })).toEqual([
-            {
-                public_key: 'conv-1',
-                unread_messages_count: 2,
-                partner: { name: 'Bob', url: '/chat/bob' },
-                last_message_at: '2026-07-02T18:30:00Z',
-            },
-        ]);
-    });
-
-    it('accepts a bare conversations array', () => {
-        expect(normalizeConversationsPayload([
-            {
-                public_key: 'conv-2',
-                unread_messages_count: '1',
-                partner: { name: 'Carol', url: '/chat/carol' },
-                last_message_at: null,
-            },
-        ])).toEqual([
-            {
-                public_key: 'conv-2',
-                unread_messages_count: 1,
-                partner: { name: 'Carol', url: '/chat/carol' },
-                last_message_at: null,
-            },
-        ]);
-    });
-});
-
-describe('syncUnreadCountsFromConversations', () => {
-    it('replaces unread counts from the latest conversations payload', () => {
-        const unreadCounts = { 'conv-old': 9 };
-
-        syncUnreadCountsFromConversations(unreadCounts, [
-            { public_key: 'conv-1', unread_messages_count: 3 },
-            { public_key: 'conv-2', unread_messages_count: 0 },
-        ]);
-
-        expect(unreadCounts).toEqual({
-            'conv-1': 3,
-            'conv-2': 0,
-        });
-    });
-});
-
-describe('shouldRefreshInboxOnPageShow', () => {
-    it('refreshes only when the page was restored from bfcache', () => {
-        expect(shouldRefreshInboxOnPageShow({ persisted: true })).toBe(true);
-        expect(shouldRefreshInboxOnPageShow({ persisted: false })).toBe(false);
-        expect(shouldRefreshInboxOnPageShow(null)).toBe(false);
-    });
-});
-
-describe('shouldResumeChatSessionOnVisibility', () => {
-    it('resumes only after the tab was hidden and becomes visible again', () => {
-        expect(shouldResumeChatSessionOnVisibility('visible', true)).toBe(true);
-        expect(shouldResumeChatSessionOnVisibility('visible', false)).toBe(false);
-        expect(shouldResumeChatSessionOnVisibility('hidden', true)).toBe(false);
-        expect(shouldResumeChatSessionOnVisibility('hidden', false)).toBe(false);
-        expect(shouldResumeChatSessionOnVisibility(null, true)).toBe(false);
     });
 });
 

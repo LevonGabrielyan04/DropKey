@@ -1,6 +1,7 @@
 ---
 paths:
   - resources/js/e2eeChatSession.js
+  - resources/js/e2ee/**
 ---
 
 # Js
