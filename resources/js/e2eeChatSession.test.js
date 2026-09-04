@@ -20,6 +20,7 @@ import {
     resolveChatMessageContent,
     resolveIncomingMessageContent,
     shouldRefreshInboxOnPageShow,
+    shouldResumeChatSessionOnVisibility,
     syncUnreadCountsFromConversations,
 } from './e2eeChatSession.js';
 
@@ -176,6 +177,16 @@ describe('shouldRefreshInboxOnPageShow', () => {
         expect(shouldRefreshInboxOnPageShow({ persisted: true })).toBe(true);
         expect(shouldRefreshInboxOnPageShow({ persisted: false })).toBe(false);
         expect(shouldRefreshInboxOnPageShow(null)).toBe(false);
+    });
+});
+
+describe('shouldResumeChatSessionOnVisibility', () => {
+    it('resumes only after the tab was hidden and becomes visible again', () => {
+        expect(shouldResumeChatSessionOnVisibility('visible', true)).toBe(true);
+        expect(shouldResumeChatSessionOnVisibility('visible', false)).toBe(false);
+        expect(shouldResumeChatSessionOnVisibility('hidden', true)).toBe(false);
+        expect(shouldResumeChatSessionOnVisibility('hidden', false)).toBe(false);
+        expect(shouldResumeChatSessionOnVisibility(null, true)).toBe(false);
     });
 });
 

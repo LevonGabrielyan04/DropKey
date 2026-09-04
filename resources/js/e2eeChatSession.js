@@ -207,6 +207,16 @@ export function shouldRefreshInboxOnPageShow(event) {
 }
 
 /**
+ * Resume an open conversation after the tab was backgrounded.
+ *
+ * @param {string | null | undefined} visibilityState
+ * @param {boolean} wasHidden
+ */
+export function shouldResumeChatSessionOnVisibility(visibilityState, wasHidden) {
+    return visibilityState === 'visible' && wasHidden === true;
+}
+
+/**
  * @param {number} count
  * @param {string} one
  * @param {string} other
@@ -256,6 +266,11 @@ document.addEventListener('alpine:init', () => {
         downloadingPath: '',
         downloadError: '',
         downloadErrorPath: '',
+        wasHidden: false,
+        bootstrapping: false,
+        pendingBootstrap: false,
+        handleVisibilityChange: null,
+        handlePageShow: null,
 
         get canSendMessage() {
             return this.ready
@@ -284,6 +299,7 @@ document.addEventListener('alpine:init', () => {
             this.decryptionFailedMessage = this.$el.dataset.decryptionFailedMessage
                 ?? 'Unable to decrypt this message.';
 
+            this.bindVisibilityListeners();
             this.bootstrap();
         },
 
@@ -357,14 +373,67 @@ document.addEventListener('alpine:init', () => {
         },
 
         destroy() {
+            this.unbindVisibilityListeners();
             this.leaveConversationChannel();
             this.leaveReceiptsChannel();
         },
 
+        bindVisibilityListeners() {
+            this.unbindVisibilityListeners();
+
+            this.handleVisibilityChange = () => {
+                if (document.visibilityState === 'hidden') {
+                    this.wasHidden = true;
+
+                    return;
+                }
+
+                if (shouldResumeChatSessionOnVisibility(document.visibilityState, this.wasHidden)) {
+                    this.wasHidden = false;
+                    this.bootstrap();
+                }
+            };
+
+            this.handlePageShow = (event) => {
+                if (shouldRefreshInboxOnPageShow(event)) {
+                    this.wasHidden = false;
+                    this.bootstrap();
+                }
+            };
+
+            document.addEventListener('visibilitychange', this.handleVisibilityChange);
+            window.addEventListener('pageshow', this.handlePageShow);
+        },
+
+        unbindVisibilityListeners() {
+            if (this.handleVisibilityChange) {
+                document.removeEventListener('visibilitychange', this.handleVisibilityChange);
+                this.handleVisibilityChange = null;
+            }
+
+            if (this.handlePageShow) {
+                window.removeEventListener('pageshow', this.handlePageShow);
+                this.handlePageShow = null;
+            }
+        },
+
         async bootstrap() {
-            this.loading = true;
+            if (this.bootstrapping) {
+                this.pendingBootstrap = true;
+
+                return;
+            }
+
+            this.bootstrapping = true;
+            const isResume = this.ready;
+
+            // Keep an already-ready thread visible while catching up after backgrounding.
+            if (! isResume) {
+                this.loading = true;
+                this.ready = false;
+            }
+
             this.error = '';
-            this.ready = false;
 
             try {
                 const session = await establishSession({
@@ -387,6 +456,12 @@ document.addEventListener('alpine:init', () => {
                 this.error = 'Unable to establish an encrypted session. Ensure your partner has opened Messages at least once.';
             } finally {
                 this.loading = false;
+                this.bootstrapping = false;
+
+                if (this.pendingBootstrap) {
+                    this.pendingBootstrap = false;
+                    this.bootstrap();
+                }
             }
         },
 
