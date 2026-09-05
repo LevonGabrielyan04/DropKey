@@ -1,6 +1,6 @@
 # DropKey
 
-[![Quality gate status](https://sonarcloud.io/api/project_badges/measure?project=LevonGabrielyan04_dropkey&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=LevonGabrielyan04_dropkey)
+[![Duplicated Lines (%)](https://sonarcloud.io/api/project_badges/measure?project=LevonGabrielyan04_dropkey&metric=duplicated_lines_density)](https://sonarcloud.io/summary/new_code?id=LevonGabrielyan04_dropkey)
 [![Reliability Rating](https://sonarcloud.io/api/project_badges/measure?project=LevonGabrielyan04_dropkey&metric=reliability_rating)](https://sonarcloud.io/summary/new_code?id=LevonGabrielyan04_dropkey)
 [![Security Rating](https://sonarcloud.io/api/project_badges/measure?project=LevonGabrielyan04_dropkey&metric=security_rating)](https://sonarcloud.io/summary/new_code?id=LevonGabrielyan04_dropkey)
 [![Maintainability Rating](https://sonarcloud.io/api/project_badges/measure?project=LevonGabrielyan04_dropkey&metric=sqale_rating)](https://sonarcloud.io/summary/new_code?id=LevonGabrielyan04_dropkey)
