@@ -10,8 +10,10 @@ export {
     applyUnreadCountUpdate,
     normalizeConversationsPayload,
     syncUnreadCountsFromConversations,
+    totalUnreadFromCounts,
     formatUnreadMessagesLabel,
 } from './e2ee/inboxState.js';
+export { syncAppBadge } from './appBadge.js';
 export {
     shouldRefreshInboxOnPageShow,
     shouldResumeChatSessionOnVisibility,

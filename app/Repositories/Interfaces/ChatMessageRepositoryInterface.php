@@ -36,5 +36,10 @@ interface ChatMessageRepositoryInterface
 
     public function createMessage(Conversation $conversation, User $sender, string $payload): ChatMessage;
 
+    /**
+     * Count unviewed messages sent to the user across all of their conversations.
+     */
+    public function countUnreadMessagesFor(User $user): int;
+
     public function deleteExpired(): int;
 }

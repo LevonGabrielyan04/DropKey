@@ -69,3 +69,22 @@ it('polls only messages after the provided public id cursor', function () {
     expect($messages)->toHaveCount(1)
         ->and($messages->first()->public_id)->toBe($second->public_id);
 });
+
+it('counts unviewed messages sent to the user across conversations', function () {
+    $alice = User::factory()->create();
+    $bob = User::factory()->create();
+    $carol = User::factory()->create();
+    $repository = app(ChatMessageRepositoryInterface::class);
+
+    $withBob = createConversation($alice, $bob);
+    $withCarol = createConversation($alice, $carol);
+
+    $repository->createMessage($withBob, $bob, fakeChatPayload());
+    $viewed = $repository->createMessage($withBob, $bob, fakeChatPayload());
+    $viewed->forceFill(['is_viewed' => true])->save();
+    $repository->createMessage($withCarol, $carol, fakeChatPayload());
+    $repository->createMessage($withCarol, $alice, fakeChatPayload());
+
+    expect($repository->countUnreadMessagesFor($alice))->toBe(2)
+        ->and($repository->countUnreadMessagesFor($bob))->toBe(0);
+});

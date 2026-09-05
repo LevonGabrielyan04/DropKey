@@ -102,7 +102,12 @@ class ChatMessageService implements ChatMessageServiceInterface
             ->where('is_viewed', false)
             ->count();
 
-        broadcast(new ChatUnreadCountBroadcast($viewer, $conversation, $unreadMessagesCount));
+        broadcast(new ChatUnreadCountBroadcast(
+            $viewer,
+            $conversation,
+            $unreadMessagesCount,
+            $this->chatMessages->countUnreadMessagesFor($viewer),
+        ));
     }
 
     private function authorizeConversation(Conversation $conversation): Conversation

@@ -125,6 +125,21 @@ class ChatMessageRepository implements ChatMessageRepositoryInterface
         ]);
     }
 
+    public function countUnreadMessagesFor(User $user): int
+    {
+        return (int) $this->model->query()
+            ->where('sender_id', '!=', $user->id)
+            ->where('is_viewed', false)
+            ->whereHas('conversation', function ($query) use ($user): void {
+                $query->where(function ($conversationQuery) use ($user): void {
+                    $conversationQuery
+                        ->where('user_one_id', $user->id)
+                        ->orWhere('user_two_id', $user->id);
+                });
+            })
+            ->count();
+    }
+
     public function deleteExpired(): int
     {
         $deleted = 0;

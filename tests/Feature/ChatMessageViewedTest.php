@@ -141,9 +141,11 @@ it('broadcasts read receipts when the recipient fetches messages', function () {
         return $event->recipient->is($bob)
             && $event->conversation->is($conversation)
             && $event->unreadMessagesCount === 0
+            && $event->totalUnreadMessagesCount === 0
             && $event->broadcastWith() === [
                 'conversation_public_key' => $conversation->public_key,
                 'unread_messages_count' => 0,
+                'total_unread_messages_count' => 0,
                 'refresh' => true,
             ];
     });

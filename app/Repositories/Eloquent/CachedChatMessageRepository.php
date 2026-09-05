@@ -101,6 +101,11 @@ readonly class CachedChatMessageRepository implements ChatMessageRepositoryInter
         return $message;
     }
 
+    public function countUnreadMessagesFor(User $user): int
+    {
+        return $this->repository->countUnreadMessagesFor($user);
+    }
+
     public function deleteExpired(): int
     {
         $expiredMessages = $this->findExpiredMessages();

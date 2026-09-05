@@ -8,6 +8,9 @@ it('provides a shared service worker with a network-only fetch handler', functio
         ->toContain('event.respondWith(fetch(event.request))')
         ->toContain("addEventListener('push'")
         ->toContain("addEventListener('notificationclick'")
+        ->toContain('setAppBadge')
+        ->toContain('clearAppBadge')
+        ->toContain('unread_count')
         ->not->toContain('caches.open')
         ->not->toContain('cache.put')
         ->not->toContain('cache.add');

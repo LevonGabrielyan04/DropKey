@@ -19,6 +19,8 @@ self.addEventListener('push', (event) => {
             return;
         }
 
+        await syncAppBadge(payload.data?.unread_count);
+
         await self.registration.showNotification(payload.title, {
             body: payload.body,
             tag: payload.tag,
@@ -42,7 +44,12 @@ self.addEventListener('notificationclick', (event) => {
 
 /**
  * @param {PushMessageData | null} data
- * @returns {{ title: string, body: string, tag?: string, data?: { url?: string } }}
+ * @returns {{
+ *   title: string,
+ *   body: string,
+ *   tag?: string,
+ *   data?: { url?: string, unread_count?: number }
+ * }}
  */
 function parsePushPayload(data) {
     const defaults = {
@@ -70,6 +77,28 @@ function parsePushPayload(data) {
     } catch {
         return defaults;
     }
+}
+
+/**
+ * @param {unknown} unreadCount
+ * @returns {Promise<void>}
+ */
+async function syncAppBadge(unreadCount) {
+    if (! ('setAppBadge' in self.navigator) || ! ('clearAppBadge' in self.navigator)) {
+        return;
+    }
+
+    const count = typeof unreadCount === 'number' && Number.isFinite(unreadCount)
+        ? Math.max(0, Math.floor(unreadCount))
+        : 0;
+
+    if (count > 0) {
+        await self.navigator.setAppBadge(count);
+
+        return;
+    }
+
+    await self.navigator.clearAppBadge();
 }
 
 /**

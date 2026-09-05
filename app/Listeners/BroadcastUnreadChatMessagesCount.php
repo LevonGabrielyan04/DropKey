@@ -6,6 +6,7 @@ namespace App\Listeners;
 
 use App\Events\ChatMessageSent;
 use App\Events\ChatUnreadCountBroadcast;
+use App\Repositories\Interfaces\ChatMessageRepositoryInterface;
 use Illuminate\Contracts\Queue\ShouldQueue;
 
 class BroadcastUnreadChatMessagesCount implements ShouldQueue
@@ -14,6 +15,8 @@ class BroadcastUnreadChatMessagesCount implements ShouldQueue
      * Dedicated queue so chat realtime is not blocked by slow jobs.
      */
     public string $queue = 'broadcasts';
+
+    public function __construct(protected ChatMessageRepositoryInterface $chatMessages) {}
 
     public function handle(ChatMessageSent $event): void
     {
@@ -29,6 +32,7 @@ class BroadcastUnreadChatMessagesCount implements ShouldQueue
             $event->recipient,
             $event->message->conversation,
             $unreadMessagesCount,
+            $this->chatMessages->countUnreadMessagesFor($event->recipient),
         ));
     }
 }

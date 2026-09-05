@@ -15,8 +15,10 @@ class NewChatMessageNotification extends Notification implements ShouldQueue
 {
     use Queueable;
 
-    public function __construct(public User $sender)
-    {
+    public function __construct(
+        public User $sender,
+        public int $unreadCount,
+    ) {
         $this->afterCommit();
     }
 
@@ -36,6 +38,7 @@ class NewChatMessageNotification extends Notification implements ShouldQueue
             ->tag('chat-'.$this->sender->public_key)
             ->data([
                 'url' => route('chat.show', $this->sender),
+                'unread_count' => max(0, $this->unreadCount),
             ]);
     }
 }

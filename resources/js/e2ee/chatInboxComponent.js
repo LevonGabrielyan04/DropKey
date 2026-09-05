@@ -1,8 +1,10 @@
+import { syncAppBadge } from '../appBadge.js';
 import {
     applyUnreadCountUpdate,
     formatUnreadMessagesLabel,
     normalizeConversationsPayload,
     syncUnreadCountsFromConversations,
+    totalUnreadFromCounts,
 } from './inboxState.js';
 import { formatMessageTime } from './messageContent.js';
 import { shouldRefreshInboxOnPageShow } from './visibility.js';
@@ -43,6 +45,7 @@ if (typeof document !== 'undefined') {
                 }
 
                 syncUnreadCountsFromConversations(this.unreadCounts, this.conversations);
+                this.syncHomeScreenBadge();
                 this.subscribeToUnreadCounts();
                 this.bindInboxVisibilityListeners();
                 // Livewire navigate / browser back can restore a cached inbox with stale badges.
@@ -107,11 +110,27 @@ if (typeof document !== 'undefined') {
                 );
             },
 
+            syncHomeScreenBadge() {
+                void syncAppBadge(totalUnreadFromCounts(this.unreadCounts));
+            },
+
             /**
-             * @param {{ conversation_public_key?: unknown, unread_messages_count?: unknown, refresh?: unknown }} event
+             * @param {{
+             *   conversation_public_key?: unknown,
+             *   unread_messages_count?: unknown,
+             *   total_unread_messages_count?: unknown,
+             *   refresh?: unknown
+             * }} event
              */
             updateUnreadCount(event) {
                 applyUnreadCountUpdate(this.unreadCounts, event);
+
+                if (typeof event?.total_unread_messages_count === 'number'
+                    && Number.isFinite(event.total_unread_messages_count)) {
+                    void syncAppBadge(event.total_unread_messages_count);
+                } else {
+                    this.syncHomeScreenBadge();
+                }
 
                 if (event?.refresh === true) {
                     this.refreshConversations();
@@ -144,6 +163,7 @@ if (typeof document !== 'undefined') {
                     const data = await response.json();
                     this.conversations = normalizeConversationsPayload(data);
                     syncUnreadCountsFromConversations(this.unreadCounts, this.conversations);
+                    this.syncHomeScreenBadge();
                 } catch {
                     // Keep the current inbox state if the refresh request fails.
                 } finally {

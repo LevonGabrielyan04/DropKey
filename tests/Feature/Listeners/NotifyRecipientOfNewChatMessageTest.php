@@ -21,7 +21,7 @@ it('is registered to listen for ChatMessageSent', function () {
 });
 
 it('implements ShouldQueue', function () {
-    expect(new NotifyRecipientOfNewChatMessage)->toBeInstanceOf(ShouldQueue::class);
+    expect(app(NotifyRecipientOfNewChatMessage::class))->toBeInstanceOf(ShouldQueue::class);
 });
 
 it('is queued when ChatMessageSent is dispatched', function () {
@@ -64,10 +64,11 @@ it('notifies the recipient when they have a push subscription', function () {
         'payload' => fakeChatPayload(),
     ]);
 
-    (new NotifyRecipientOfNewChatMessage)->handle(new ChatMessageSent($message, $sender, $recipient));
+    app(NotifyRecipientOfNewChatMessage::class)->handle(new ChatMessageSent($message, $sender, $recipient));
 
     Notification::assertSentTo($recipient, NewChatMessageNotification::class, function (NewChatMessageNotification $notification) use ($sender) {
-        return $notification->sender->is($sender);
+        return $notification->sender->is($sender)
+            && $notification->unreadCount === 1;
     });
     Notification::assertNotSentTo($sender, NewChatMessageNotification::class);
 });
@@ -85,7 +86,7 @@ it('does not notify recipients without a push subscription', function () {
         'payload' => fakeChatPayload(),
     ]);
 
-    (new NotifyRecipientOfNewChatMessage)->handle(new ChatMessageSent($message, $sender, $recipient));
+    app(NotifyRecipientOfNewChatMessage::class)->handle(new ChatMessageSent($message, $sender, $recipient));
 
     Notification::assertNothingSent();
 });

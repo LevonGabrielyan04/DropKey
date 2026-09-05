@@ -25,6 +25,7 @@ class ChatUnreadCountBroadcast implements ShouldBroadcast
         public User $recipient,
         public Conversation $conversation,
         public int $unreadMessagesCount,
+        public int $totalUnreadMessagesCount,
     ) {}
 
     public function broadcastAs(): string
@@ -43,13 +44,19 @@ class ChatUnreadCountBroadcast implements ShouldBroadcast
     }
 
     /**
-     * @return array{conversation_public_key: string, unread_messages_count: int, refresh: true}
+     * @return array{
+     *     conversation_public_key: string,
+     *     unread_messages_count: int,
+     *     total_unread_messages_count: int,
+     *     refresh: true
+     * }
      */
     public function broadcastWith(): array
     {
         return [
             'conversation_public_key' => $this->conversation->public_key,
             'unread_messages_count' => $this->unreadMessagesCount,
+            'total_unread_messages_count' => $this->totalUnreadMessagesCount,
             'refresh' => true,
         ];
     }

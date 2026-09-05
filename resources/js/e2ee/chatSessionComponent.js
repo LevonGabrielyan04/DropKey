@@ -1,3 +1,4 @@
+import { syncAppBadge } from '../appBadge.js';
 import {
     buildAttachmentMetadata,
     downloadAndDecryptAttachment,
@@ -48,6 +49,7 @@ if (typeof document !== 'undefined') {
             conversationPublicKey: '',
             conversationChannel: null,
             receiptsChannel: null,
+            unreadCountsChannel: null,
             localUserId: 0,
             localUserPublicId: '',
             recipientId: 0,
@@ -99,6 +101,7 @@ if (typeof document !== 'undefined') {
                     ?? 'Unable to decrypt this message.';
 
                 this.bindVisibilityListeners();
+                this.subscribeToUnreadCounts();
                 this.bootstrap();
             },
 
@@ -175,6 +178,7 @@ if (typeof document !== 'undefined') {
                 this.unbindVisibilityListeners();
                 this.leaveConversationChannel();
                 this.leaveReceiptsChannel();
+                this.leaveUnreadCountsChannel();
             },
 
             bindVisibilityListeners() {
@@ -472,6 +476,32 @@ if (typeof document !== 'undefined') {
 
                 window.Echo.leave(`conversation.${this.conversationPublicKey}.receipts`);
                 this.receiptsChannel = null;
+            },
+
+            subscribeToUnreadCounts() {
+                if (! this.localUserPublicId || ! window.Echo) {
+                    return;
+                }
+
+                this.leaveUnreadCountsChannel();
+
+                this.unreadCountsChannel = window.Echo
+                    .private(`chat.${this.localUserPublicId}`)
+                    .listen('.ChatUnreadCount', (event) => {
+                        if (typeof event?.total_unread_messages_count === 'number'
+                            && Number.isFinite(event.total_unread_messages_count)) {
+                            void syncAppBadge(event.total_unread_messages_count);
+                        }
+                    });
+            },
+
+            leaveUnreadCountsChannel() {
+                if (! this.localUserPublicId || ! window.Echo) {
+                    return;
+                }
+
+                window.Echo.leave(`chat.${this.localUserPublicId}`);
+                this.unreadCountsChannel = null;
             },
 
             /**

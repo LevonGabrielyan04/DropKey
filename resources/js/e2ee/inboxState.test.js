@@ -5,6 +5,7 @@ import {
     formatUnreadMessagesLabel,
     normalizeConversationsPayload,
     syncUnreadCountsFromConversations,
+    totalUnreadFromCounts,
 } from './inboxState.js';
 
 describe('applyMessageViewedReceipts', () => {
@@ -144,5 +145,23 @@ describe('syncUnreadCountsFromConversations', () => {
             'conv-1': 3,
             'conv-2': 0,
         });
+    });
+});
+
+describe('totalUnreadFromCounts', () => {
+    it('sums positive unread counts across conversations', () => {
+        expect(totalUnreadFromCounts({
+            'conv-1': 2,
+            'conv-2': 3,
+            'conv-3': 0,
+        })).toBe(5);
+    });
+
+    it('ignores invalid unread values', () => {
+        expect(totalUnreadFromCounts({
+            'conv-1': 1,
+            'conv-2': -2,
+            'conv-3': Number.NaN,
+        })).toBe(1);
     });
 });

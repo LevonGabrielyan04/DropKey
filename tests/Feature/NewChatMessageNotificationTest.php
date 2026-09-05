@@ -33,6 +33,7 @@ it('queues a web push notification when the recipient has a subscription', funct
             ->and($message['body'])->toBe('You have a new message')
             ->and($message['tag'])->toBe('chat-'.$sender->public_key)
             ->and($message['data']['url'])->toBe(route('chat.show', $sender))
+            ->and($message['data']['unread_count'])->toBe(1)
             ->and(json_encode($message))->not->toContain('ciphertext')
             ->and(json_encode($message))->not->toContain('payload');
 
