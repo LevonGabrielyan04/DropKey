@@ -47,6 +47,9 @@
                         id="chat-username"
                         type="text"
                         x-model="username"
+                        autocomplete="off"
+                        autocapitalize="none"
+                        spellcheck="false"
                         placeholder="{{ __('Enter a registered user name') }}"
                         class="block w-full !rounded-none border-2 border-zinc-950 bg-white px-3 py-2.5 font-mono text-sm text-zinc-950 focus:border-emerald-500 focus:outline-hidden focus:ring-2 focus:ring-emerald-500 dark:border-zinc-100 dark:bg-zinc-900 dark:text-zinc-50"
                     />
