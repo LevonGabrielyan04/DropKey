@@ -1,3 +1,4 @@
+import { appFetch } from '../../http.js';
 import { confirmIdentityKeyOverwrite } from './identityOverwriteConfirmation.js';
 import { resolveBrowserDbId } from './identitySession.js';
 import { loadEncryptedIdentity, loadUnlockedIdentity } from './keyStore.js';
@@ -36,7 +37,7 @@ export async function wouldOverwriteLocalIdentity(browserDbId) {
  * @returns {Promise<boolean>}
  */
 export async function wouldOverwriteServerIdentity(mineUrl, fingerprint) {
-    const response = await fetch(mineUrl, {
+    const response = await appFetch(mineUrl, {
         headers: { Accept: 'application/json' },
         credentials: 'same-origin',
     });

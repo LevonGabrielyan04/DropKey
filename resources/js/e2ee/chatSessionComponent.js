@@ -14,6 +14,7 @@ import {
     establishSession,
     fetchPartnerConversationKey,
 } from '../cryptography/e2ee/session.js';
+import { appFetch, ResponseRedirectError } from '../http.js';
 import { applyMessageViewedReceipts } from './inboxState.js';
 import {
     formatMessageTime,
@@ -255,7 +256,11 @@ if (typeof document !== 'undefined') {
                     this.subscribeToConversation();
                     this.subscribeToReceipts();
                     this.ready = true;
-                } catch {
+                } catch (error) {
+                    if (error instanceof ResponseRedirectError) {
+                        return;
+                    }
+
                     this.error = 'Unable to establish an encrypted session. Ensure your partner has opened Messages at least once.';
                 } finally {
                     this.loading = false;
@@ -309,7 +314,7 @@ if (typeof document !== 'undefined') {
                 let response;
 
                 try {
-                    response = await fetch(url, {
+                    response = await appFetch(url, {
                         headers: { Accept: 'application/json' },
                         credentials: 'same-origin',
                     });
@@ -406,7 +411,7 @@ if (typeof document !== 'undefined') {
                     encodeURIComponent(String(message.public_id)),
                 );
 
-                fetch(url, {
+                appFetch(url, {
                     method: 'POST',
                     headers: {
                         Accept: 'application/json',
@@ -553,7 +558,7 @@ if (typeof document !== 'undefined') {
                     const content = serializeChatMessageContent({ text, attachment });
                     const payload = await encryptChatMessage(content, this.conversationKey);
 
-                    const response = await fetch(this.sendUrl, {
+                    const response = await appFetch(this.sendUrl, {
                         method: 'POST',
                         headers: {
                             Accept: 'application/json',
@@ -598,6 +603,10 @@ if (typeof document !== 'undefined') {
                     this.sortMessages();
                     this.scrollToBottom();
                 } catch (error) {
+                    if (error instanceof ResponseRedirectError) {
+                        return;
+                    }
+
                     this.sendError = error instanceof Error && error.message !== ''
                         ? error.message
                         : 'Encryption or delivery failed. Try again.';

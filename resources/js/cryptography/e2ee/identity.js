@@ -1,3 +1,4 @@
+import { appFetch } from '../../http.js';
 import { fingerprintFromPublicJwk } from './bufferUtils.js';
 import {
     ensureIdentityOverwriteAllowed,
@@ -20,7 +21,7 @@ import {
  * @returns {Promise<Response>}
  */
 async function submitPublicKeyRegistration(registerUrl, csrfToken, publicJwk, fingerprint) {
-    return fetch(registerUrl, {
+    return appFetch(registerUrl, {
         method: 'POST',
         headers: {
             Accept: 'application/json',
@@ -94,7 +95,7 @@ export async function ensureIdentityKeyPair() {
  * @param {string} options.csrfToken
  */
 export async function ensureServerIdentityKey({ registerUrl, mineUrl, csrfToken }) {
-    const mineResponse = await fetch(mineUrl, {
+    const mineResponse = await appFetch(mineUrl, {
         headers: { Accept: 'application/json' },
         credentials: 'same-origin',
     });

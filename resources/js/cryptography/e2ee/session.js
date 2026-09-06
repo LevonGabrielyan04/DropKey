@@ -1,3 +1,4 @@
+import { appFetch } from '../../http.js';
 import { deriveConversationKey } from './conversationKey.js';
 import { ensureIdentityKeyPair, ensureServerIdentityKey, importPublicKey } from './identity.js';
 import { decryptBytes, decryptMessage, encryptBytes, encryptMessage } from './messageCrypto.js';
@@ -16,7 +17,7 @@ export async function fetchPartnerConversationKey({
 }) {
     const { privateKey } = await ensureIdentityKeyPair();
 
-    const response = await fetch(publicKeyUrl, {
+    const response = await appFetch(publicKeyUrl, {
         headers: { Accept: 'application/json' },
         credentials: 'same-origin',
     });

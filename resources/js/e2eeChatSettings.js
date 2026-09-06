@@ -1,4 +1,5 @@
 import { establishSession } from './cryptography/e2ee/session.js';
+import { appFetch, ResponseRedirectError } from './http.js';
 
 export const DEFAULT_AUTO_DELETE = '7 days';
 
@@ -12,7 +13,7 @@ export const DEFAULT_AUTO_DELETE = '7 days';
  * @returns {Promise<{ ok: true, autoDelete: string } | { ok: false }>}
  */
 export async function persistAutoDelete({ autoDeleteUrl, csrfToken, autoDelete }) {
-    const response = await fetch(autoDeleteUrl, {
+    const response = await appFetch(autoDeleteUrl, {
         method: 'PATCH',
         headers: {
             Accept: 'application/json',
@@ -88,7 +89,11 @@ document.addEventListener('alpine:init', () => {
 
                 this.partnerFingerprint = session.partnerFingerprint;
                 this.ready = true;
-            } catch {
+            } catch (error) {
+                if (error instanceof ResponseRedirectError) {
+                    return;
+                }
+
                 this.error = 'Unable to load partner fingerprint. Ensure your partner has opened Messages at least once.';
             } finally {
                 this.loading = false;
@@ -119,7 +124,11 @@ document.addEventListener('alpine:init', () => {
 
                 this.autoDelete = result.autoDelete;
                 this.$el.dataset.autoDelete = this.autoDelete;
-            } catch {
+            } catch (error) {
+                if (error instanceof ResponseRedirectError) {
+                    return;
+                }
+
                 this.autoDelete = previousAutoDelete;
                 this.autoDeleteError = 'Failed to update auto-delete setting.';
             } finally {

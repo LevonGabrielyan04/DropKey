@@ -1,4 +1,5 @@
 import { syncAppBadge } from '../appBadge.js';
+import { appFetch, ResponseRedirectError } from '../http.js';
 import {
     applyUnreadCountUpdate,
     formatUnreadMessagesLabel,
@@ -151,7 +152,7 @@ if (typeof document !== 'undefined') {
                 this.refreshingConversations = true;
 
                 try {
-                    const response = await fetch(this.conversationsUrl, {
+                    const response = await appFetch(this.conversationsUrl, {
                         headers: { Accept: 'application/json' },
                         credentials: 'same-origin',
                     });
@@ -164,7 +165,11 @@ if (typeof document !== 'undefined') {
                     this.conversations = normalizeConversationsPayload(data);
                     syncUnreadCountsFromConversations(this.unreadCounts, this.conversations);
                     this.syncHomeScreenBadge();
-                } catch {
+                } catch (error) {
+                    if (error instanceof ResponseRedirectError) {
+                        return;
+                    }
+
                     // Keep the current inbox state if the refresh request fails.
                 } finally {
                     this.refreshingConversations = false;

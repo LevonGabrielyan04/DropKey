@@ -10,6 +10,7 @@ import {
     decryptBytes,
     encryptBytes,
 } from './cryptography/e2ee/messageCrypto.js';
+import { appFetch } from './http.js';
 
 export const ENCRYPTED_UPLOAD_CONTENT_TYPE = 'application/octet-stream';
 
@@ -107,7 +108,7 @@ export async function prepareEncryptedUpload(file, conversationKey) {
  * }>}
  */
 export async function requestUploadLink({ uploadsUrl, csrfToken, contentType, size }) {
-    const response = await fetch(uploadsUrl, {
+    const response = await appFetch(uploadsUrl, {
         method: 'POST',
         headers: {
             Accept: 'application/json',
@@ -141,7 +142,7 @@ export async function requestUploadLink({ uploadsUrl, csrfToken, contentType, si
  * @returns {Promise<{ url: string, path: string, expires_in: number }>}
  */
 export async function requestDownloadLink({ downloadsUrl, csrfToken, path }) {
-    const response = await fetch(downloadsUrl, {
+    const response = await appFetch(downloadsUrl, {
         method: 'POST',
         headers: {
             Accept: 'application/json',
